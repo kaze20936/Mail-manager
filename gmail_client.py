@@ -91,6 +91,19 @@ class GmailClient:
 
         return build('gmail', 'v1', credentials=creds)
 
+    def get_account_email(self) -> str:
+        """現在接続中のGmailアドレスを返すにゃ"""
+        try:
+            profile = self.service.users().getProfile(userId='me').execute()
+            return profile.get('emailAddress', '')
+        except Exception:
+            return ''
+
+    def logout(self):
+        """token.json を削除してログアウトするにゃ（ローカル用）"""
+        if os.path.exists(Config.GMAIL_TOKEN_PATH):
+            os.remove(Config.GMAIL_TOKEN_PATH)
+
     def _decode_str(self, value: str) -> str:
         parts = decode_header(value or '')
         result = []
