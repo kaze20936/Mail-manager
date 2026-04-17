@@ -1,185 +1,162 @@
-import sqlite3
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional
+
+from supabase import create_client, Client
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
     def __init__(self):
-        self.db_path = Config.DB_PATH
-        self._init_db()
+        if not Config.SUPABASE_URL or not Config.SUPABASE_KEY:
+            raise ValueError(
+                'SUPABASE_URL と SUPABASE_KEY が設定されていないにゃ！\n'
+                '⚙️設定タブ → 🔧初期設定 で設定してにゃ。'
+            )
+        self.client: Client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
-
-    def _init_db(self):
-        with self._conn() as conn:
-            conn.execute('''
-                CREATE TABLE IF NOT EXISTS emails (
-                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                    gmail_id            TEXT UNIQUE NOT NULL,
-                    thread_id           TEXT NOT NULL DEFAULT '',
-                    message_id_header   TEXT DEFAULT '',
-                    sender_name         TEXT DEFAULT '',
-                    sender_email        TEXT NOT NULL,
-                    subject             TEXT DEFAULT '',
-                    body                TEXT DEFAULT '',
-                    category            TEXT DEFAULT 'その他',
-                    received_at         TEXT DEFAULT '',
-                    status              TEXT DEFAULT 'pending',
-                    reply_text          TEXT DEFAULT '',
-                    hidden              INTEGER DEFAULT 0,
-                    created_at          TEXT DEFAULT CURRENT_TIMESTAMP,
-                    updated_at          TEXT DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            # 既存DBへのカラム追加（マイグレーション）
-            try:
-                conn.execute('ALTER TABLE emails ADD COLUMN hidden INTEGER DEFAULT 0')
-            except Exception:
-                pass  # すでに存在する場合はスキップ
-            conn.commit()
+    # ─────────────────────────────────────────────
+    # メール保存・取得
+    # ─────────────────────────────────────────────
 
     def email_exists(self, gmail_id: str) -> bool:
-        with self._conn() as conn:
-            cur = conn.execute('SELECT 1 FROM emails WHERE gmail_id = ?', (gmail_id,))
-            return cur.fetchone() is not None
+        r = self.client.table('emails').select('id').eq('gmail_id', gmail_id).execute()
+        return len(r.data) > 0
 
     def save_email(self, email_data: dict) -> Optional[int]:
-        with self._conn() as conn:
-            cur = conn.execute('''
-                INSERT OR IGNORE INTO emails
-                    (gmail_id, thread_id, message_id_header, sender_name,
-                     sender_email, subject, body, category, received_at, reply_text)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                email_data['gmail_id'],
-                email_data.get('thread_id', ''),
-                email_data.get('message_id_header', ''),
-                email_data.get('sender_name', ''),
-                email_data['sender_email'],
-                email_data.get('subject', ''),
-                email_data.get('body', ''),
-                email_data.get('category', 'その他'),
-                email_data.get('received_at', ''),
-                email_data.get('reply_text', ''),
-            ))
-            conn.commit()
-            if cur.rowcount > 0:
-                return cur.lastrowid
-            # 既存レコードのIDを返す
-            cur2 = conn.execute('SELECT id FROM emails WHERE gmail_id = ?', (email_data['gmail_id'],))
-            row = cur2.fetchone()
-            return row[0] if row else None
+        # 既存レコードがあれば ID だけ返す
+        r = self.client.table('emails').select('id').eq('gmail_id', email_data['gmail_id']).execute()
+        if r.data:
+            return r.data[0]['id']
+
+        insert_data = {
+            'gmail_id':          email_data['gmail_id'],
+            'thread_id':         email_data.get('thread_id', ''),
+            'message_id_header': email_data.get('message_id_header', ''),
+            'sender_name':       email_data.get('sender_name', ''),
+            'sender_email':      email_data['sender_email'],
+            'subject':           email_data.get('subject', ''),
+            'body':              email_data.get('body', ''),
+            'category':          email_data.get('category', 'その他'),
+            'received_at':       email_data.get('received_at', ''),
+            'reply_text':        email_data.get('reply_text', ''),
+            'status':            'pending',
+            'hidden':            False,
+        }
+        r = self.client.table('emails').insert(insert_data).execute()
+        return r.data[0]['id'] if r.data else None
 
     def get_emails_by_status(self, status: str, include_hidden: bool = False) -> List[Dict]:
-        with self._conn() as conn:
-            conn.row_factory = sqlite3.Row
-            if include_hidden:
-                cur = conn.execute(
-                    'SELECT * FROM emails WHERE status = ? ORDER BY received_at DESC',
-                    (status,)
-                )
-            else:
-                cur = conn.execute(
-                    'SELECT * FROM emails WHERE status = ? AND hidden = 0 ORDER BY received_at DESC',
-                    (status,)
-                )
-            return [dict(row) for row in cur.fetchall()]
+        q = self.client.table('emails').select('*').eq('status', status)
+        if not include_hidden:
+            q = q.eq('hidden', False)
+        r = q.order('received_at', desc=True).execute()
+        return r.data or []
 
     def get_counts(self) -> Dict[str, int]:
-        with self._conn() as conn:
-            cur = conn.execute('SELECT status, COUNT(*) FROM emails GROUP BY status')
-            return {row[0]: row[1] for row in cur.fetchall()}
+        result = {}
+        for status in ['pending', 'saved', 'sent', 'skipped']:
+            r = (self.client.table('emails')
+                 .select('id', count='exact')
+                 .eq('status', status)
+                 .limit(0)
+                 .execute())
+            result[status] = r.count or 0
+        return result
+
+    def get_email_by_id(self, email_id: int) -> Optional[Dict]:
+        r = self.client.table('emails').select('*').eq('id', email_id).execute()
+        return r.data[0] if r.data else None
+
+    # ─────────────────────────────────────────────
+    # ステータス・返信文の更新
+    # ─────────────────────────────────────────────
 
     def update_status(self, email_id: int, status: str):
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE emails SET status = ?, updated_at = ? WHERE id = ?',
-                (status, datetime.now().isoformat(), email_id)
-            )
-            conn.commit()
+        self.client.table('emails').update({
+            'status':     status,
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', email_id).execute()
 
     def update_reply_text(self, email_id: int, reply_text: str):
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE emails SET reply_text = ?, updated_at = ? WHERE id = ?',
-                (reply_text, datetime.now().isoformat(), email_id)
-            )
-            conn.commit()
+        self.client.table('emails').update({
+            'reply_text': reply_text,
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', email_id).execute()
 
     def save_reply_and_set_saved(self, email_id: int, reply_text: str):
         """返信文を保存してステータスを saved に変更"""
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE emails SET reply_text = ?, status = ?, updated_at = ? WHERE id = ?',
-                (reply_text, 'saved', datetime.now().isoformat(), email_id)
-            )
-            conn.commit()
+        self.client.table('emails').update({
+            'reply_text': reply_text,
+            'status':     'saved',
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', email_id).execute()
 
-    def get_email_by_id(self, email_id: int) -> Optional[Dict]:
-        with self._conn() as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.execute('SELECT * FROM emails WHERE id = ?', (email_id,))
-            row = cur.fetchone()
-            return dict(row) if row else None
+    # ─────────────────────────────────────────────
+    # 送信者管理
+    # ─────────────────────────────────────────────
 
     def get_senders_summary(self) -> List[Dict]:
         """送信者ごとのメール件数・スキップ件数を返す"""
-        with self._conn() as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.execute('''
-                SELECT
-                    sender_email,
-                    sender_name,
-                    category,
-                    COUNT(*) as mail_count,
-                    SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped_count,
-                    MAX(received_at) as latest_received
-                FROM emails
-                WHERE sender_email != ''
-                GROUP BY sender_email
-                ORDER BY mail_count DESC, latest_received DESC
-            ''')
-            return [dict(row) for row in cur.fetchall()]
+        r = (self.client.table('emails')
+             .select('sender_email,sender_name,category,status,received_at')
+             .execute())
+        emails = r.data or []
+
+        summary: Dict[str, Dict] = {}
+        for e in emails:
+            addr = e.get('sender_email', '')
+            if not addr:
+                continue
+            if addr not in summary:
+                summary[addr] = {
+                    'sender_email':   addr,
+                    'sender_name':    e.get('sender_name', ''),
+                    'category':       e.get('category', 'その他'),
+                    'mail_count':     0,
+                    'skipped_count':  0,
+                    'latest_received': '',
+                }
+            summary[addr]['mail_count'] += 1
+            if e.get('status') == 'skipped':
+                summary[addr]['skipped_count'] += 1
+            recv = e.get('received_at', '') or ''
+            if recv > summary[addr]['latest_received']:
+                summary[addr]['latest_received'] = recv
+
+        return sorted(summary.values(),
+                      key=lambda x: (x['mail_count'], x['latest_received']),
+                      reverse=True)
+
+    def get_emails_by_sender(self, sender_email: str) -> List[Dict]:
+        """特定送信者のメール一覧（最新20件）"""
+        r = (self.client.table('emails')
+             .select('id,subject,received_at,status,category')
+             .eq('sender_email', sender_email)
+             .order('received_at', desc=True)
+             .limit(20)
+             .execute())
+        return r.data or []
 
     def hide_emails_by_sender(self, sender_email: str):
-        """指定送信者のメールをすべて非表示にする（ステータスは変更しない）"""
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE emails SET hidden = 1, updated_at = ? WHERE sender_email = ?',
-                (datetime.now().isoformat(), sender_email)
-            )
-            conn.commit()
+        """指定送信者のメールをすべて非表示にする"""
+        self.client.table('emails').update({
+            'hidden':     True,
+            'updated_at': datetime.now().isoformat(),
+        }).eq('sender_email', sender_email).execute()
 
     def show_emails_by_sender(self, sender_email: str):
         """指定送信者のメールをすべて再表示する"""
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE emails SET hidden = 0, updated_at = ? WHERE sender_email = ?',
-                (datetime.now().isoformat(), sender_email)
-            )
-            conn.commit()
+        self.client.table('emails').update({
+            'hidden':     False,
+            'updated_at': datetime.now().isoformat(),
+        }).eq('sender_email', sender_email).execute()
 
     def skip_emails_by_sender(self, sender_email: str):
         """指定送信者の未対応・保存済みメールをすべてスキップに変更"""
-        with self._conn() as conn:
-            conn.execute('''
-                UPDATE emails
-                SET status = 'skipped', updated_at = ?
-                WHERE sender_email = ? AND status IN ('pending', 'saved')
-            ''', (datetime.now().isoformat(), sender_email))
-            conn.commit()
-
-    def get_emails_by_sender(self, sender_email: str) -> List[Dict]:
-        """特定の送信者のメール一覧を返す"""
-        with self._conn() as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.execute('''
-                SELECT id, subject, received_at, status, category
-                FROM emails
-                WHERE sender_email = ?
-                ORDER BY received_at DESC
-                LIMIT 20
-            ''', (sender_email,))
-            return [dict(row) for row in cur.fetchall()]
+        self.client.table('emails').update({
+            'status':     'skipped',
+            'updated_at': datetime.now().isoformat(),
+        }).eq('sender_email', sender_email).in_('status', ['pending', 'saved']).execute()
