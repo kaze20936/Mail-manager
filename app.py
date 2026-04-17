@@ -216,7 +216,16 @@ def get_db() -> Database:
 def get_gmail() -> GmailClient | None:
     if 'gmail_client' not in st.session_state:
         try:
-            st.session_state['gmail_client'] = GmailClient()
+            # アクティブアカウントのトークンを使うにゃ
+            token_json = None
+            try:
+                db = get_db()
+                active = db.get_active_account()
+                if active:
+                    token_json = active['token_json']
+            except Exception:
+                pass
+            st.session_state['gmail_client'] = GmailClient(token_json=token_json)
         except Exception as e:
             st.error(f'Gmail 認証エラー: {e}')
             st.session_state['gmail_client'] = None
