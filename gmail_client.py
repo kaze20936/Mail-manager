@@ -41,9 +41,15 @@ class GmailClient:
         """token_json を渡すとそのトークンで認証するにゃ（省略時はtoken.jsonを使うにゃ）"""
         self.service = self._authenticate(token_json=token_json)
 
-    def _authenticate(self):
-        # ── Railway デプロイ用: 環境変数から credentials.json を復元にゃ
+    def _authenticate(self, token_json: str = None):
+        # ── 環境変数から credentials.json を復元にゃ
         creds_json_env = os.getenv('GMAIL_CREDENTIALS_JSON', '')
+        if not creds_json_env:
+            try:
+                import streamlit as _st
+                creds_json_env = str(_st.secrets.get('GMAIL_CREDENTIALS_JSON', ''))
+            except Exception:
+                pass
         if creds_json_env and not os.path.exists(Config.GMAIL_CREDENTIALS_PATH):
             os.makedirs(os.path.dirname(Config.GMAIL_CREDENTIALS_PATH), exist_ok=True)
             with open(Config.GMAIL_CREDENTIALS_PATH, 'w', encoding='utf-8') as f:
