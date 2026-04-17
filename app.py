@@ -697,13 +697,65 @@ def render_initial_setup():
         st.warning(f'あと {remain} 項目残っているにゃ。上から順番に設定してにゃ。')
 
 
+def render_account_tab():
+    """アカウント切り替えタブにゃ"""
+    gmail = get_gmail()
+    is_cloud = bool(os.getenv('GMAIL_TOKEN_JSON', '').strip())
+    try:
+        import streamlit as _st
+        is_cloud = is_cloud or bool(_st.secrets.get('GMAIL_TOKEN_JSON', ''))
+    except Exception:
+        pass
+
+    st.markdown('### 📧 接続中のGmailアカウント')
+
+    if gmail:
+        account_email = gmail.get_account_email()
+        if account_email:
+            st.markdown(
+                f'<div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:12px;'
+                f'padding:1rem 1.4rem;margin-bottom:1rem;">'
+                f'<div style="font-size:.8rem;color:#16a34a;font-weight:600;margin-bottom:.3rem;">現在接続中</div>'
+                f'<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">📧 {account_email}</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.warning('アカウント情報を取得できなかったにゃ')
+    else:
+        st.error('Gmailに接続されていないにゃ')
+
+    st.markdown('### 🔄 アカウントを切り替える')
+
+    if is_cloud:
+        st.info(
+            '**Streamlit Cloud で別アカウントに切り替える手順にゃ：**\n\n'
+            '1. ローカルPC で `python auth_token.py` を実行して新しいアカウントでログインにゃ\n'
+            '2. 生成された `token.json` の中身をコピーにゃ\n'
+            '3. Streamlit Cloud → Settings → Secrets で `GMAIL_TOKEN_JSON` の値を新しい内容に貼り替えるにゃ\n'
+            '4. アプリを再起動するにゃ'
+        )
+        st.markdown('**手順1で使うコマンド（ローカルで実行にゃ）：**')
+        st.code('python C:\\Users\\tomoh\\mail-manager\\auth_token.py', language='bash')
+    else:
+        st.info('ボタンを押すとブラウザが開いてGoogleアカウントを選択できるにゃ。')
+        if st.button('🔄 別のGoogleアカウントでログインし直す', type='primary'):
+            # token.json削除＋セッションリセット
+            if gmail:
+                gmail.logout()
+            if 'gmail_client' in st.session_state:
+                del st.session_state['gmail_client']
+            st.success('ログアウトしたにゃ！ページを再読み込みするとブラウザが開いてログインできるにゃ。')
+            st.rerun()
+
+
 def render_settings():
     st.subheader('⚙️ 返信ルール設定')
     rules = load_rules()
     db = get_db()
 
-    cfg_tab2, cfg_tab3, cfg_tab4 = st.tabs([
-        '📋 送信者管理', '🚫 返信しないキーワード', '📂 カテゴリルール'
+    cfg_tab2, cfg_tab3, cfg_tab4, cfg_tab_account = st.tabs([
+        '📋 送信者管理', '🚫 返信しないキーワード', '📂 カテゴリルール', '📧 アカウント'
     ])
 
     # ══════════════════════════════════════════
