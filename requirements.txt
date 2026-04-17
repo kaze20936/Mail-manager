@@ -7,4 +7,11 @@ notion-client>=2.2.1
 python-dotenv>=1.0.1
 pyyaml>=6.0.1
 beautifulsoup4>=4.12.3
+
+# Supabase（pyiceberg不要インストール手順 → setup.bat参照にゃ）
 supabase>=2.0.0
+httpx[http2]>=0.28.0
+PyJWT>=2.0.0
+deprecation>=2.1.0
+multidict>=6.0.0
+yarl>=1.0.0
