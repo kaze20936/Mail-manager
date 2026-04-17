@@ -792,6 +792,10 @@ def render_account_tab():
             app_url = app_url.strip().rstrip('/')
 
     if app_url:
+        st.markdown(
+            f'**Google Cloud Consoleに登録するリダイレクトURIにゃ（コピーしてそのまま貼るにゃ）：**'
+        )
+        st.code(app_url, language=None)
         if st.button('➕ Googleアカウントを追加する', type='primary', use_container_width=True):
             try:
                 flow, auth_url, _ = create_auth_flow(app_url)
