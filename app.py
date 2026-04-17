@@ -985,11 +985,23 @@ def main():
     saved_n   = counts.get('saved',   0)
     sent_n    = counts.get('sent',    0)
 
-    # ── ヘッダー統計
+    # ── ヘッダー統計カード
     m1, m2, m3 = st.columns(3)
-    m1.metric('📬 未対応',  pending_n)
-    m2.metric('💾 保存済み', saved_n)
-    m3.metric('✅ 送信済み', sent_n)
+    with m1:
+        st.markdown(f'''<div class="stat-card stat-pending">
+            <div class="stat-num">{pending_n}</div>
+            <div class="stat-label">📬 未対応</div>
+        </div>''', unsafe_allow_html=True)
+    with m2:
+        st.markdown(f'''<div class="stat-card stat-saved">
+            <div class="stat-num">{saved_n}</div>
+            <div class="stat-label">💾 保存済み</div>
+        </div>''', unsafe_allow_html=True)
+    with m3:
+        st.markdown(f'''<div class="stat-card stat-sent">
+            <div class="stat-num">{sent_n}</div>
+            <div class="stat-label">✅ 送信済み</div>
+        </div>''', unsafe_allow_html=True)
 
     st.divider()
 
