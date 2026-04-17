@@ -31,22 +31,30 @@ def get_setup_status() -> dict:
     load_dotenv(override=True)
     cwd = os.path.dirname(os.path.abspath(__file__))
 
-    credentials_ok = os.path.exists(os.path.join(cwd, 'credentials.json'))
-    token_ok       = os.path.exists(os.path.join(cwd, 'token.json'))
-    api_key        = os.getenv('ANTHROPIC_API_KEY', '').strip()
-    anthropic_ok   = bool(api_key and not api_key.startswith('your_') and len(api_key) > 10)
-    notion_token   = os.getenv('NOTION_TOKEN', '').strip()
-    notion_ok      = bool(notion_token and not notion_token.startswith('your_') and len(notion_token) > 10)
+    credentials_ok  = os.path.exists(os.path.join(cwd, 'credentials.json'))
+    token_ok        = os.path.exists(os.path.join(cwd, 'token.json'))
+    api_key         = os.getenv('ANTHROPIC_API_KEY', '').strip()
+    anthropic_ok    = bool(api_key and not api_key.startswith('your_') and len(api_key) > 10)
+    notion_token    = os.getenv('NOTION_TOKEN', '').strip()
+    notion_ok       = bool(notion_token and not notion_token.startswith('your_') and len(notion_token) > 10)
+    supabase_url    = os.getenv('SUPABASE_URL', '').strip()
+    supabase_key    = os.getenv('SUPABASE_KEY', '').strip()
+    supabase_ok     = bool(supabase_url and supabase_key
+                           and supabase_url.startswith('https://')
+                           and len(supabase_key) > 20)
 
     return {
-        'credentials':       credentials_ok,
-        'token':             token_ok,
-        'anthropic_ok':      anthropic_ok,
-        'anthropic_value':   api_key,
-        'notion_ok':         notion_ok,
-        'notion_value':      notion_token,
-        'notion_page_value': os.getenv('NOTION_PARENT_PAGE_ID', '').strip(),
-        'all_required':      credentials_ok and token_ok and anthropic_ok,
+        'credentials':        credentials_ok,
+        'token':              token_ok,
+        'anthropic_ok':       anthropic_ok,
+        'anthropic_value':    api_key,
+        'supabase_ok':        supabase_ok,
+        'supabase_url_value': supabase_url,
+        'supabase_key_value': supabase_key,
+        'notion_ok':          notion_ok,
+        'notion_value':       notion_token,
+        'notion_page_value':  os.getenv('NOTION_PARENT_PAGE_ID', '').strip(),
+        'all_required':       credentials_ok and token_ok and anthropic_ok and supabase_ok,
     }
 
 
