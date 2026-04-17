@@ -957,7 +957,22 @@ def render_settings():
 # ─────────────────────────────────────────────
 
 def main():
-    st.title('✉️ Mail Manager')
+    # ── タイトル＋接続アカウント表示
+    title_col, account_col = st.columns([3, 2])
+    with title_col:
+        st.title('✉️ Mail Manager')
+    with account_col:
+        gmail = get_gmail()
+        if gmail:
+            account_email = gmail.get_account_email()
+            if account_email:
+                st.markdown(
+                    f'<div style="text-align:right;padding-top:1.2rem;">'
+                    f'<span style="background:#f0fdf4;border:1.5px solid #bbf7d0;'
+                    f'border-radius:20px;padding:.35rem .9rem;font-size:.82rem;'
+                    f'color:#15803d;font-weight:600;">📧 {account_email}</span></div>',
+                    unsafe_allow_html=True
+                )
 
     # ── 使い方ガイド
     with st.expander('📖 使い方ガイド（はじめて使うときに読んでにゃ）'):
