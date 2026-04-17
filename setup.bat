@@ -28,7 +28,13 @@ echo.
 :: ── ライブラリインストール
 echo  必要なライブラリをインストール中にゃ（数分かかることがあるにゃ）...
 echo.
-pip install -r requirements.txt --quiet
+
+:: supabase は pyiceberg(C++コンパイル必要)を避けて段階インストールにゃ
+pip install streamlit google-api-python-client google-auth-httplib2 google-auth-oauthlib anthropic notion-client python-dotenv pyyaml beautifulsoup4 --quiet
+pip install "httpx[http2]" PyJWT deprecation multidict yarl --quiet
+pip install supabase --no-deps --quiet
+pip install postgrest realtime storage3 supabase-auth supabase-functions --no-deps --quiet
+
 if errorlevel 1 (
     echo.
     echo  [エラー] ライブラリのインストールに失敗したにゃ...
