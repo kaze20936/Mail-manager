@@ -63,16 +63,26 @@ class GmailClient:
                 'Railway:  環境変数 GMAIL_CREDENTIALS_JSON に credentials.json の内容を設定してにゃ\n'
             )
 
-        # ── Railway デプロイ用: 環境変数から token.json を復元にゃ
-        token_json_env = os.getenv('GMAIL_TOKEN_JSON', '')
-        if token_json_env and not os.path.exists(Config.GMAIL_TOKEN_PATH):
-            os.makedirs(os.path.dirname(Config.GMAIL_TOKEN_PATH), exist_ok=True)
-            with open(Config.GMAIL_TOKEN_PATH, 'w', encoding='utf-8') as f:
-                f.write(token_json_env)
-            logger.info('環境変数 GMAIL_TOKEN_JSON から token.json を生成したにゃ')
+        # ── token_json 引数 → 環境変数 → token.json ファイルの順で認証にゃ
+        if not token_json:
+            token_json_env = os.getenv('GMAIL_TOKEN_JSON', '')
+            if not token_json_env:
+                try:
+                    import streamlit as _st
+                    token_json_env = str(_st.secrets.get('GMAIL_TOKEN_JSON', ''))
+                except Exception:
+                    pass
+            if token_json_env and not os.path.exists(Config.GMAIL_TOKEN_PATH):
+                os.makedirs(os.path.dirname(Config.GMAIL_TOKEN_PATH), exist_ok=True)
+                with open(Config.GMAIL_TOKEN_PATH, 'w', encoding='utf-8') as f:
+                    f.write(token_json_env)
 
         creds = None
-        if os.path.exists(Config.GMAIL_TOKEN_PATH):
+        if token_json:
+            # 直接トークン文字列から認証にゃ
+            import json as _json
+            creds = Credentials.from_authorized_user_info(_json.loads(token_json), SCOPES)
+        elif os.path.exists(Config.GMAIL_TOKEN_PATH):
             creds = Credentials.from_authorized_user_file(Config.GMAIL_TOKEN_PATH, SCOPES)
 
         if not creds or not creds.valid:
