@@ -160,3 +160,40 @@ class Database:
             'status':     'skipped',
             'updated_at': datetime.now().isoformat(),
         }).eq('sender_email', sender_email).in_('status', ['pending', 'saved']).execute()
+
+    # ─────────────────────────────────────────────
+    # Gmailアカウント管理
+    # ─────────────────────────────────────────────
+
+    def get_gmail_accounts(self) -> List[Dict]:
+        """登録済みGmailアカウント一覧を返すにゃ"""
+        r = self.client.table('gmail_accounts').select('*').order('created_at').execute()
+        return r.data or []
+
+    def get_active_account(self) -> Optional[Dict]:
+        """アクティブなアカウントを返すにゃ"""
+        r = self.client.table('gmail_accounts').select('*').eq('is_active', True).limit(1).execute()
+        return r.data[0] if r.data else None
+
+    def upsert_gmail_account(self, email: str, token_json: str):
+        """アカウントを登録・更新するにゃ（既存なら token_json だけ更新）"""
+        r = self.client.table('gmail_accounts').select('id').eq('email', email).execute()
+        if r.data:
+            self.client.table('gmail_accounts').update({
+                'token_json': token_json,
+            }).eq('email', email).execute()
+        else:
+            self.client.table('gmail_accounts').insert({
+                'email':      email,
+                'token_json': token_json,
+                'is_active':  False,
+            }).execute()
+
+    def set_active_account(self, email: str):
+        """指定アカウントをアクティブにして他を非アクティブにするにゃ"""
+        self.client.table('gmail_accounts').update({'is_active': False}).neq('email', '').execute()
+        self.client.table('gmail_accounts').update({'is_active': True}).eq('email', email).execute()
+
+    def delete_gmail_account(self, email: str):
+        """アカウントを削除するにゃ"""
+        self.client.table('gmail_accounts').delete().eq('email', email).execute()
