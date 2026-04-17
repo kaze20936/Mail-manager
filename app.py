@@ -87,6 +87,42 @@ CATEGORY_ICONS = {
 
 st.set_page_config(page_title='Mail Manager', page_icon='✉️', layout='wide')
 
+st.markdown("""
+<style>
+/* ── 取得・送信ボタン（primary）→ 緑 */
+div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border: 1px solid #15803d;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(34,197,94,0.35);
+}
+div.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    box-shadow: 0 3px 8px rgba(34,197,94,0.5);
+}
+
+/* ── 保存・管理系ボタン（secondary）→ アンバー */
+div.stButton > button[kind="secondary"] {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: 1px solid #b45309;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(245,158,11,0.3);
+}
+div.stButton > button[kind="secondary"]:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    box-shadow: 0 3px 7px rgba(245,158,11,0.45);
+}
+
+/* ── デフォルトボタン（スキップ等）→ スレートグレー */
+div.stButton > button[kind="tertiary"] {
+    border: 1px solid #64748b;
+    color: #475569;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # リソース初期化（キャッシュ）
