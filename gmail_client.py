@@ -37,8 +37,9 @@ ALLOWED_DOMAINS: list[str] = []
 
 
 class GmailClient:
-    def __init__(self):
-        self.service = self._authenticate()
+    def __init__(self, token_json: str = None):
+        """token_json を渡すとそのトークンで認証するにゃ（省略時はtoken.jsonを使うにゃ）"""
+        self.service = self._authenticate(token_json=token_json)
 
     def _authenticate(self):
         # ── Railway デプロイ用: 環境変数から credentials.json を復元にゃ
