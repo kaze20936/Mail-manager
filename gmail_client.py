@@ -104,6 +104,31 @@ class GmailClient:
         if os.path.exists(Config.GMAIL_TOKEN_PATH):
             os.remove(Config.GMAIL_TOKEN_PATH)
 
+
+def create_auth_flow(redirect_uri: str) -> tuple:
+    """OAuth認証URLとFlowオブジェクトを返すにゃ"""
+    flow = Flow.from_client_secrets_file(
+        Config.GMAIL_CREDENTIALS_PATH,
+        scopes=SCOPES,
+        redirect_uri=redirect_uri,
+    )
+    auth_url, state = flow.authorization_url(
+        prompt='select_account',
+        access_type='offline',
+        include_granted_scopes='true',
+    )
+    return flow, auth_url, state
+
+
+def save_token_from_flow(flow: Flow, code: str):
+    """認証コードをトークンに交換してtoken.jsonを保存するにゃ"""
+    import os as _os
+    flow.fetch_token(code=code)
+    creds = flow.credentials
+    _os.makedirs(_os.path.dirname(Config.GMAIL_TOKEN_PATH), exist_ok=True)
+    with open(Config.GMAIL_TOKEN_PATH, 'w', encoding='utf-8') as f:
+        f.write(creds.to_json())
+
     def _decode_str(self, value: str) -> str:
         parts = decode_header(value or '')
         result = []
