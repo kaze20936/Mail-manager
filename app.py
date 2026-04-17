@@ -292,7 +292,7 @@ def render_card(db: Database, email: dict):
     eid        = email['id']
     reply_key  = f"reply_{eid}"
     check_key  = f"check_{eid}"
-    icon       = CATEGORY_ICONS.get(email.get('category', 'その他'), '⚪')
+    category   = email.get('category', 'その他')
 
     with st.container():
         col_chk, col_info = st.columns([0.04, 0.96])
@@ -301,12 +301,15 @@ def render_card(db: Database, email: dict):
             st.checkbox('', key=check_key, label_visibility='collapsed')
 
         with col_info:
-            st.markdown(
-                f"{icon} **{email.get('category','その他')}** &nbsp;│&nbsp; "
-                f"`{email.get('sender_name','')}` &lt;{email.get('sender_email','')}&gt;"
-            )
-            st.markdown(f"**📧 {email.get('subject','(件名なし)')}**")
-            st.caption(f"受信: {email.get('received_at','')}")
+            st.markdown(f'''<div class="mail-card mail-card-{category}">
+                <span class="mail-category cat-{category}">{category}</span>
+                <div class="mail-subject">📧 {email.get('subject','(件名なし)')}</div>
+                <div class="mail-meta">
+                    👤 {email.get('sender_name','')}
+                    &lt;{email.get('sender_email','')}&gt;
+                    &nbsp;·&nbsp; 🕐 {email.get('received_at','')}
+                </div>
+            </div>''', unsafe_allow_html=True)
 
         with st.expander('📨 元のメールを見る'):
             st.text(email.get('body', '(本文なし)'))
