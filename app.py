@@ -609,15 +609,17 @@ def render_initial_setup():
     # ── セットアップ状況まとめ
     st.markdown('---')
     st.markdown('### 📊 セットアップ状況まとめ')
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric('Gmail接続ファイル', '✅ OK' if ok1 else '❌ 未設定')
-    c2.metric('AI APIキー',        '✅ OK' if ok2 else '❌ 未設定')
-    c3.metric('Gmailログイン',     '✅ OK' if ok3 else '❌ 未完了')
+    c2.metric('Supabase DB',      '✅ OK' if ok_sb else '❌ 未設定')
+    c3.metric('AI APIキー',        '✅ OK' if ok2 else '❌ 未設定')
+    c4.metric('Gmailログイン',     '✅ OK' if ok3 else '❌ 未完了')
 
-    if ok1 and ok2 and ok3:
+    all_ok = ok1 and ok_sb and ok2 and ok3
+    if all_ok:
         st.success('🎉 すべての設定が完了しているにゃ！「📥 メールを取得する」から始めてにゃ！')
     else:
-        remain = sum([not ok1, not ok2, not ok3])
+        remain = sum([not ok1, not ok_sb, not ok2, not ok3])
         st.warning(f'あと {remain} 項目残っているにゃ。上から順番に設定してにゃ。')
 
 
