@@ -111,36 +111,93 @@ st.set_page_config(page_title='Mail Manager', page_icon='✉️', layout='wide')
 
 st.markdown("""
 <style>
-/* ── 取得・送信ボタン（primary）→ 緑 */
+/* ══ グローバル ══════════════════════════════ */
+section.main > div { padding-top: 1.2rem; }
+.block-container { padding: 1.5rem 2.5rem; }
+
+/* ══ ボタン ══════════════════════════════════ */
 div.stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
-    border: 1px solid #15803d;
-    font-weight: bold;
-    box-shadow: 0 2px 6px rgba(34,197,94,0.35);
+    color: white; border: none; border-radius: 8px;
+    font-weight: 700; padding: 0.45rem 1.1rem;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.35);
+    transition: all .15s;
 }
 div.stButton > button[kind="primary"]:hover {
     background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    box-shadow: 0 3px 8px rgba(34,197,94,0.5);
+    box-shadow: 0 4px 12px rgba(34,197,94,0.5); transform: translateY(-1px);
 }
-
-/* ── 保存・管理系ボタン（secondary）→ アンバー */
 div.stButton > button[kind="secondary"] {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    border: 1px solid #b45309;
-    font-weight: 500;
-    box-shadow: 0 2px 5px rgba(245,158,11,0.3);
+    color: white; border: none; border-radius: 8px;
+    font-weight: 600; padding: 0.45rem 1.1rem;
+    box-shadow: 0 2px 6px rgba(245,158,11,0.3);
+    transition: all .15s;
 }
 div.stButton > button[kind="secondary"]:hover {
     background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    box-shadow: 0 3px 7px rgba(245,158,11,0.45);
+    box-shadow: 0 4px 10px rgba(245,158,11,0.45); transform: translateY(-1px);
+}
+div.stButton > button[kind="tertiary"] {
+    border: 1.5px solid #94a3b8; color: #64748b;
+    border-radius: 8px; transition: all .15s;
+}
+div.stButton > button[kind="tertiary"]:hover {
+    border-color: #64748b; color: #334155; background: #f1f5f9;
 }
 
-/* ── デフォルトボタン（スキップ等）→ スレートグレー */
-div.stButton > button[kind="tertiary"] {
-    border: 1px solid #64748b;
-    color: #475569;
+/* ══ 統計カード ══════════════════════════════ */
+.stat-card {
+    border-radius: 12px; padding: 1rem 1.4rem;
+    text-align: center; margin-bottom: .5rem;
+}
+.stat-card .stat-num {
+    font-size: 2.2rem; font-weight: 800; line-height: 1.1;
+}
+.stat-card .stat-label {
+    font-size: 0.82rem; font-weight: 500; opacity: .75; margin-top: .2rem;
+}
+.stat-pending  { background: #eff6ff; border: 2px solid #bfdbfe; color: #1e40af; }
+.stat-saved    { background: #fefce8; border: 2px solid #fde68a; color: #92400e; }
+.stat-sent     { background: #f0fdf4; border: 2px solid #bbf7d0; color: #14532d; }
+
+/* ══ メールカード ════════════════════════════ */
+.mail-card {
+    border-radius: 12px; border: 1.5px solid #e2e8f0;
+    padding: 1rem 1.2rem; margin-bottom: .8rem;
+    background: white;
+    border-left-width: 5px !important;
+}
+.mail-card-仕事依頼      { border-left-color: #f97316 !important; }
+.mail-card-問い合わせ    { border-left-color: #3b82f6 !important; }
+.mail-card-請求・支払い  { border-left-color: #ef4444 !important; }
+.mail-card-通知・自動送信 { border-left-color: #6b7280 !important; }
+.mail-card-その他        { border-left-color: #a855f7 !important; }
+
+.mail-category {
+    display: inline-block; font-size: .72rem; font-weight: 700;
+    padding: .15rem .55rem; border-radius: 20px; margin-bottom: .4rem;
+}
+.cat-仕事依頼      { background: #fff7ed; color: #c2410c; }
+.cat-問い合わせ    { background: #eff6ff; color: #1d4ed8; }
+.cat-請求・支払い  { background: #fef2f2; color: #b91c1c; }
+.cat-通知・自動送信 { background: #f3f4f6; color: #374151; }
+.cat-その他        { background: #faf5ff; color: #7e22ce; }
+
+.mail-subject {
+    font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: .3rem 0;
+}
+.mail-meta {
+    font-size: .78rem; color: #64748b; margin-bottom: .5rem;
+}
+
+/* ══ タブ ════════════════════════════════════ */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px; border-bottom: 2px solid #e2e8f0;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0 0; padding: .55rem 1.2rem;
+    font-weight: 600; font-size: .9rem;
 }
 </style>
 """, unsafe_allow_html=True)
