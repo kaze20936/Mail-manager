@@ -31,8 +31,22 @@ def get_setup_status() -> dict:
     load_dotenv(override=True)
     cwd = os.path.dirname(os.path.abspath(__file__))
 
-    credentials_ok  = os.path.exists(os.path.join(cwd, 'credentials.json'))
-    token_ok        = os.path.exists(os.path.join(cwd, 'token.json'))
+    # ファイルが存在するか、または環境変数（Streamlit Cloud用）があればOKにゃ
+    creds_env = os.getenv('GMAIL_CREDENTIALS_JSON', '').strip()
+    try:
+        import streamlit as _st
+        creds_env = creds_env or str(_st.secrets.get('GMAIL_CREDENTIALS_JSON', ''))
+    except Exception:
+        pass
+    credentials_ok = os.path.exists(os.path.join(cwd, 'credentials.json')) or bool(creds_env)
+
+    token_env = os.getenv('GMAIL_TOKEN_JSON', '').strip()
+    try:
+        import streamlit as _st
+        token_env = token_env or str(_st.secrets.get('GMAIL_TOKEN_JSON', ''))
+    except Exception:
+        pass
+    token_ok = os.path.exists(os.path.join(cwd, 'token.json')) or bool(token_env)
     api_key         = os.getenv('ANTHROPIC_API_KEY', '').strip()
     anthropic_ok    = bool(api_key and not api_key.startswith('your_') and len(api_key) > 10)
     notion_token    = os.getenv('NOTION_TOKEN', '').strip()
