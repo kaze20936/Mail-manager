@@ -697,56 +697,110 @@ def render_initial_setup():
         st.warning(f'あと {remain} 項目残っているにゃ。上から順番に設定してにゃ。')
 
 
+def _get_app_url() -> str:
+    """アプリのベースURLを取得にゃ（リダイレクトURIに使うにゃ）"""
+    # 環境変数 or Streamlit Secrets から取得にゃ
+    url = os.getenv('APP_URL', '').strip()
+    if not url:
+        try:
+            url = str(st.secrets.get('APP_URL', '')).strip()
+        except Exception:
+            pass
+    return url.rstrip('/') if url else ''
+
+
 def render_account_tab():
-    """アカウント切り替えタブにゃ"""
-    gmail = get_gmail()
-    is_cloud = bool(os.getenv('GMAIL_TOKEN_JSON', '').strip())
-    try:
-        import streamlit as _st
-        is_cloud = is_cloud or bool(_st.secrets.get('GMAIL_TOKEN_JSON', ''))
-    except Exception:
-        pass
+    """アカウント切り替えタブにゃ（アプリ内OAuth完結）"""
 
+    # ── OAuthコールバック処理（URLに?code=が付いてきたとき）
+    params = st.query_params
+    oauth_code = params.get('code', '')
+    if oauth_code and 'oauth_flow' in st.session_state:
+        with st.spinner('Googleと認証中にゃ...'):
+            try:
+                save_token_from_flow(st.session_state['oauth_flow'], oauth_code)
+                del st.session_state['oauth_flow']
+                if 'gmail_client' in st.session_state:
+                    del st.session_state['gmail_client']
+                st.query_params.clear()
+                st.success('✅ アカウントを切り替えたにゃ！')
+                st.rerun()
+            except Exception as e:
+                st.error(f'認証に失敗したにゃ: {e}')
+                st.query_params.clear()
+                if 'oauth_flow' in st.session_state:
+                    del st.session_state['oauth_flow']
+
+    # ── 現在のアカウント表示
     st.markdown('### 📧 接続中のGmailアカウント')
-
+    gmail = get_gmail()
     if gmail:
         account_email = gmail.get_account_email()
-        if account_email:
-            st.markdown(
-                f'<div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:12px;'
-                f'padding:1rem 1.4rem;margin-bottom:1rem;">'
-                f'<div style="font-size:.8rem;color:#16a34a;font-weight:600;margin-bottom:.3rem;">現在接続中</div>'
-                f'<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">📧 {account_email}</div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning('アカウント情報を取得できなかったにゃ')
+        st.markdown(
+            f'<div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:12px;'
+            f'padding:1rem 1.4rem;margin-bottom:1.2rem;">'
+            f'<div style="font-size:.78rem;color:#16a34a;font-weight:600;margin-bottom:.3rem;">現在接続中</div>'
+            f'<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">📧 {account_email or "(取得中...)"}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
     else:
-        st.error('Gmailに接続されていないにゃ')
+        st.warning('Gmailに接続されていないにゃ')
 
     st.markdown('### 🔄 アカウントを切り替える')
 
-    if is_cloud:
-        st.info(
-            '**Streamlit Cloud で別アカウントに切り替える手順にゃ：**\n\n'
-            '1. ローカルPC で `python auth_token.py` を実行して新しいアカウントでログインにゃ\n'
-            '2. 生成された `token.json` の中身をコピーにゃ\n'
-            '3. Streamlit Cloud → Settings → Secrets で `GMAIL_TOKEN_JSON` の値を新しい内容に貼り替えるにゃ\n'
-            '4. アプリを再起動するにゃ'
+    app_url = _get_app_url()
+
+    if not app_url:
+        # APP_URL未設定の場合は入力してもらうにゃ
+        st.info('アプリのURLを設定するとワンクリックで切り替えられるにゃ！')
+        app_url_input = st.text_input(
+            'このアプリのURL',
+            placeholder='https://xxx.streamlit.app または http://localhost:8501',
+            help='ブラウザのアドレスバーに表示されているURLをコピーしてにゃ（?以降は不要にゃ）'
         )
-        st.markdown('**手順1で使うコマンド（ローカルで実行にゃ）：**')
-        st.code('python C:\\Users\\tomoh\\mail-manager\\auth_token.py', language='bash')
-    else:
-        st.info('ボタンを押すとブラウザが開いてGoogleアカウントを選択できるにゃ。')
-        if st.button('🔄 別のGoogleアカウントでログインし直す', type='primary'):
-            # token.json削除＋セッションリセット
-            if gmail:
-                gmail.logout()
-            if 'gmail_client' in st.session_state:
-                del st.session_state['gmail_client']
-            st.success('ログアウトしたにゃ！ページを再読み込みするとブラウザが開いてログインできるにゃ。')
-            st.rerun()
+        if app_url_input:
+            app_url = app_url_input.strip().rstrip('/')
+
+    if app_url:
+        st.caption(f'リダイレクト先: `{app_url}`')
+
+        # 認証URLを生成してリンクボタン表示にゃ
+        if st.button('🔄 別のGoogleアカウントに切り替える', type='primary'):
+            try:
+                flow, auth_url, _ = create_auth_flow(app_url)
+                st.session_state['oauth_flow'] = flow
+                st.session_state['pending_auth_url'] = auth_url
+            except Exception as e:
+                st.error(f'認証URLの生成に失敗したにゃ: {e}')
+
+        if 'pending_auth_url' in st.session_state:
+            st.markdown('---')
+            st.markdown('**↓ 下のボタンを押してGoogleアカウントを選択するにゃ！**')
+            st.link_button(
+                '🔑 Googleでアカウントを選択する',
+                st.session_state['pending_auth_url'],
+                type='primary',
+                use_container_width=True,
+            )
+            st.caption('認証後、自動的にこのページに戻ってきてアカウントが切り替わるにゃ 🎉')
+
+    st.markdown('---')
+    st.markdown('#### ⚠️ 初回設定が必要にゃ（1回だけ）')
+    with st.expander('Google Cloud Consoleへの登録手順（初回のみ）'):
+        app_url_disp = app_url or 'https://あなたのアプリURL.streamlit.app'
+        st.markdown(f'''
+1. [Google Cloud Console](https://console.cloud.google.com/) を開くにゃ
+2. 左メニュー → **「APIとサービス」→「認証情報」** を開くにゃ
+3. credentials.json を作った OAuth クライアントIDをクリックにゃ
+4. **「承認済みのリダイレクト URI」** に以下を追加にゃ：
+   ```
+   {app_url_disp}
+   ```
+5. 保存してにゃ ✅
+
+→ これを設定するとボタン1つでアカウントが切り替わるにゃ！
+        ''')
 
 
 def render_settings():
