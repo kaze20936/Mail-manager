@@ -438,10 +438,64 @@ def render_initial_setup():
 → ✅ に変わればOKにゃ！
         ''')
 
-    # ── ステップ2: ANTHROPIC_API_KEY
+    # ── ステップ2: Supabase（データベース）
+    st.markdown('---')
+    ok_sb = status['supabase_ok']
+    st.markdown(f'### {"✅" if ok_sb else "❌"} ステップ2：データベース（Supabase）を設定する')
+
+    if ok_sb:
+        st.success(f'Supabase が設定されているにゃ ✓  （`{status["supabase_url_value"]}`）')
+    else:
+        st.error('Supabase が未設定にゃ！以下の手順で設定してにゃ。')
+
+    with st.expander('🗄️ Supabaseの設定手順を見る', expanded=not ok_sb):
+        st.markdown('''
+**Supabaseのアカウントを作ってプロジェクトを作成するにゃ：**
+
+**① Supabaseでアカウントを作るにゃ**
+→ ブラウザで `supabase.com` を開いて「Start your project」でGitHubアカウントでログインにゃ
+
+**② 新しいプロジェクトを作るにゃ**
+→ 「New project」をクリックにゃ
+→ 名前: `mail-manager`、パスワードは何でもOK（メモしておくにゃ）、リージョン: `Northeast Asia (Tokyo)` を選ぶにゃ
+
+**③ テーブルを作るにゃ**
+→ 左メニュー「SQL Editor」→「New query」をクリックにゃ
+→ このアプリフォルダにある `supabase_schema.sql` の内容を全部コピーして貼り付けにゃ
+→ 「Run」ボタンを押してにゃ（「Success」と出ればOKにゃ）
+
+**④ URLとAPIキーをコピーするにゃ**
+→ 左メニュー「Settings」→「API」を開くにゃ
+→ **Project URL** をコピーして下に貼り付けるにゃ
+→ **service_role** の「Reveal」ボタンを押してキーをコピーして下に貼り付けるにゃ
+→ （`anon` ではなく `service_role` の方にゃ！）
+        ''')
+        new_sb_url = st.text_input(
+            'SUPABASE_URL を貼り付けてにゃ',
+            value=status['supabase_url_value'],
+            placeholder='https://xxxxxxxxxx.supabase.co',
+            key='input_supabase_url',
+        )
+        new_sb_key = st.text_input(
+            'SUPABASE_KEY（service_role）を貼り付けてにゃ',
+            value=status['supabase_key_value'],
+            type='password',
+            placeholder='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            key='input_supabase_key',
+        )
+        if st.button('💾 Supabase設定を保存する', key='save_supabase', type='primary'):
+            if new_sb_url.strip() and new_sb_key.strip():
+                write_env_value('SUPABASE_URL', new_sb_url.strip())
+                write_env_value('SUPABASE_KEY', new_sb_key.strip())
+                st.success('保存したにゃ！ページを更新（F5）すると反映されるにゃ')
+                st.rerun()
+            else:
+                st.warning('URLとキーの両方を入力してにゃ')
+
+    # ── ステップ3: ANTHROPIC_API_KEY
     st.markdown('---')
     ok2 = status['anthropic_ok']
-    st.markdown(f'### {"✅" if ok2 else "❌"} ステップ2：AIのAPIキーを設定する')
+    st.markdown(f'### {"✅" if ok2 else "❌"} ステップ3：AIのAPIキーを設定する')
 
     if ok2:
         masked = f"sk-...{status['anthropic_value'][-4:]}" if len(status['anthropic_value']) > 4 else '（設定済み）'
