@@ -1101,20 +1101,20 @@ def main():
             st.info('送信済みのメールはありませんにゃ')
         else:
             for email in sent_emails:
-                icon = CATEGORY_ICONS.get(email.get('category', 'その他'), '⚪')
+                category = email.get('category', 'その他')
                 with st.container():
-                    st.markdown(
-                        f"{icon} **{email.get('category','その他')}** &nbsp; ✅ 送信済み"
-                    )
-                    st.markdown(f"**📧 {email.get('subject','(件名なし)')}**")
-                    st.caption(
-                        f"送信先: {email.get('sender_name','')} "
-                        f"<{email.get('sender_email','')}> "
-                        f"　受信: {email.get('received_at','')}"
-                    )
+                    st.markdown(f'''<div class="mail-card mail-card-{category}">
+                        <span class="mail-category cat-{category}">{category}</span>
+                        &nbsp;<span style="color:#16a34a;font-size:.78rem;font-weight:600;">✅ 送信済み</span>
+                        <div class="mail-subject">📧 {email.get('subject','(件名なし)')}</div>
+                        <div class="mail-meta">
+                            👤 {email.get('sender_name','')}
+                            &lt;{email.get('sender_email','')}&gt;
+                            &nbsp;·&nbsp; 🕐 {email.get('received_at','')}
+                        </div>
+                    </div>''', unsafe_allow_html=True)
                     with st.expander('返信内容を見る'):
                         st.text(email.get('reply_text', ''))
-                    st.divider()
 
 
 if __name__ == '__main__':
