@@ -262,7 +262,7 @@ def render_card(db: Database, email: dict):
                             st.error('送信に失敗しましたにゃ...')
 
         with b2:
-            if st.button('💾 編集を保存', key=f"save_{eid}"):
+            if st.button('💾 編集を保存', key=f"save_{eid}", type='secondary'):
                 text = st.session_state.get(reply_key, '')
                 db.save_reply_and_set_saved(eid, text)
                 st.success('保存したにゃ！')
