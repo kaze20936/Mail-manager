@@ -1,0 +1,101 @@
+skip:
+  senders:
+  - noreply@
+  - no-reply@
+  - notification@
+  - donotreply@
+  - mailer-daemon@
+  - sokuho-news@mx.nikkei.com
+  - info@marketing.hapitas.jp
+  - info@cloud-creal.com
+  - crewnews@magazine.jtb.co.jp
+  - news@ns.chatwork.com
+  - newsletter@sleepdoctor.com
+  - admin@snsers.com
+  - news@epark.jp
+  - sumisei_mail@am.sumitomolife.co.jp
+  - marketing@engage.canva.com
+  - pontawebnews@point.recruit.co.jp
+  - mgz_info@mos.jp
+  - ant.wilson@supabase.com
+  - stories-recap@mail.instagram.com
+  - info-ymweb@kodansha.co.jp
+  - v-mail@dmm.com
+  - v-mail@dmm.co.jp
+  - rurubutravel_news@magazine.jtb.co.jp
+  - email_magazine@kakuyomu.jp
+  - hello@lottiefiles.com
+  - jmbnews@jalmail.jal.com
+  - info@sf.crowdworks.jp
+  - news@aeonbank.co.jp
+  - mail@ml.skylark.co.jp
+  - monsterhunternow@email.nianticlabs.com
+  - post@atcanvas.jp
+  - toeic-schedule@iibc-global.org
+  - info@email.hisol-shift.net
+  - jmb_confirmation@jal.com
+  - team@fitgo.mail.channel.io
+  - job-s27@mynavi.jp
+  - product@engage.canva.com
+  - Microsoft365@engagement.microsoft.com
+  - seikyu-kanryo@shingakunet.com
+  - magazine@kosokubus.com
+  - info@iqpro.ai
+  - info@iqbooster.org
+  - paiza_news@paiza.jp
+  - info@paiza.jp
+  - info@cs.obunsha.co.jp
+  - nabd@mail.saisoncard.co.jp
+  - Trip.com@newsletter.trip.com
+  - hello@mail.wispr.ai
+  - follow-suggestions@mail.instagram.com
+  - myog_mail@sysmail.osakagas.co.jp
+  subject_keywords:
+  - '[自動返信]'
+  - out of office
+  - 不在通知
+  - 自動応答
+categories:
+  仕事依頼:
+    senders:
+    - '@client.co.jp'
+    - partner@
+    subject_keywords:
+    - 依頼
+    - お願い
+    - 発注
+    - ご相談
+    - お見積
+  請求・支払い:
+    senders:
+    - billing@
+    - invoice@
+    - accounting@
+    subject_keywords:
+    - 請求書
+    - invoice
+    - 支払い
+    - お支払い
+    - 入金
+    - 振込
+  問い合わせ:
+    senders: []
+    subject_keywords:
+    - お問い合わせ
+    - ご質問
+    - 教えてください
+    - 確認させてください
+    - 質問
+  通知・自動送信:
+    senders:
+    - noreply@
+    - no-reply@
+    - notification@
+    - donotreply@
+    subject_keywords:
+    - notification
+    - 通知
+    - 自動送信
+    - automated
+    - '[自動]'
+  その他: {}

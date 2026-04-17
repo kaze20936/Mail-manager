@@ -1,0 +1,16 @@
+# 認証情報・シークレット（絶対にコミットしない）
+.env
+credentials.json
+token.json
+notion_db_id.txt
+
+# データベース（メール本文・返信文が含まれる）
+mail_manager.db
+
+# ログ（メールの件名などが含まれる可能性あり）
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

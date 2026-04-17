@@ -1,0 +1,8 @@
+[server]
+# address は指定しない → Railway/外部アクセスに対応
+# ローカルで使うときは start.bat が localhost でアクセスするにゃ
+port = 8501
+headless = true
+
+[browser]
+gatherUsageStats = false
