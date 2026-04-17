@@ -899,22 +899,6 @@ def render_settings():
 def main():
     st.title('✉️ Mail Manager')
 
-    # ── セットアップ状況バナー
-    _status = get_setup_status()
-    if not _status['all_required']:
-        _missing = []
-        if not _status['credentials']:
-            _missing.append('Gmail接続ファイル（credentials.json）')
-        if not _status['anthropic_ok']:
-            _missing.append('AI APIキー（ANTHROPIC_API_KEY）')
-        if not _status['token']:
-            _missing.append('Gmailログイン')
-        st.warning(
-            '⚠️ **セットアップが完了していないにゃ！**\n\n'
-            f'不足: **{" ／ ".join(_missing)}**\n\n'
-            '→ 下の **⚙️ 設定タブ → 🔧 初期設定** で設定できるにゃ',
-        )
-
     # ── 使い方ガイド
     with st.expander('📖 使い方ガイド（はじめて使うときに読んでにゃ）'):
         st.markdown('''
