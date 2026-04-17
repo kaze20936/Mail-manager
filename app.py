@@ -531,7 +531,7 @@ def render_initial_setup():
     # ── ステップ3: Gmail認証
     st.markdown('---')
     ok3 = status['token']
-    st.markdown(f'### {"✅" if ok3 else "❌"} ステップ3：Gmailにログインする')
+    st.markdown(f'### {"✅" if ok3 else "❌"} ステップ4：Gmailにログインする')
 
     if ok3:
         st.success('Gmailの認証が完了しているにゃ ✓')
