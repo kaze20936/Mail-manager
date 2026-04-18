@@ -1199,7 +1199,7 @@ def render_account_select_screen():
     """アカウント選択画面にゃ（アクティブアカウント未設定時に表示）"""
     st.title('✉️ Mail Manager')
     st.markdown('---')
-    st.markdown('## 使用するGmailアカウントを選択してにゃ')
+    st.markdown('## 使用するメールアカウントを選択してにゃ')
 
     db = get_db()
     accounts = db.get_gmail_accounts()
