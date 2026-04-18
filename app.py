@@ -805,6 +805,12 @@ def render_account_tab():
                 st.error(f'エラー: {e}')
 
         if 'pending_auth_url' in st.session_state:
+            # Googleに送るredirect_uriを抽出して表示にゃ
+            from urllib.parse import urlparse, parse_qs
+            _parsed = urlparse(st.session_state['pending_auth_url'])
+            _params = parse_qs(_parsed.query)
+            _actual_redirect = _params.get('redirect_uri', ['(不明)'])[0]
+            st.info(f'**Google Cloud Consoleに登録するURI（コピーしてそのまま貼るにゃ）：**\n\n`{_actual_redirect}`')
             st.link_button(
                 '🔑 Googleでログインする',
                 st.session_state['pending_auth_url'],
