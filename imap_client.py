@@ -230,21 +230,30 @@ class ImapClient:
         if not query:
             return 'UNSEEN'  # デフォルト: 未読のみ
 
-        # 日付指定の変換にゃ（after:2024/01/01 形式）
         import re
+
+        # --all フラグ相当（in:inbox -from:me など全件取得クエリ）にゃ
+        # Gmail特有の構文はすべて UNSEEN か ALL に変換するにゃ
+        gmail_keywords = ('is:unread', 'is:inbox', 'in:inbox', '-from:me', 'is:read')
+        if any(k in query for k in gmail_keywords):
+            # 未読フラグがあれば UNSEEN、なければ ALL にゃ
+            if 'is:unread' in query or 'is:read' not in query:
+                return 'UNSEEN'
+            return 'ALL'
+
+        # 日付指定の変換にゃ（after:2024/01/01 形式）
         m = re.search(r'after:(\d{4}/\d{2}/\d{2})', query)
         if m:
             date_str = m.group(1).replace('/', '-')
             try:
                 dt = datetime.strptime(date_str, '%Y-%m-%d')
-                # IMAP の SINCE フォーマット: "01-Jan-2024"
                 imap_date = dt.strftime('%d-%b-%Y')
                 return f'SINCE "{imap_date}"'
             except ValueError:
                 pass
 
-        # from: 指定にゃ
-        m = re.search(r'from:(\S+)', query)
+        # from: 指定にゃ（-from: は除外）
+        m = re.search(r'(?<!-)from:(\S+)', query)
         if m:
             return f'FROM "{m.group(1)}"'
 
@@ -252,10 +261,6 @@ class ImapClient:
         m = re.search(r'subject:(\S+)', query)
         if m:
             return f'SUBJECT "{m.group(1)}"'
-
-        # in:inbox -from:me 等は UNSEEN で代替にゃ
-        if 'in:inbox' in query:
-            return 'UNSEEN'
 
         return 'UNSEEN'
 
