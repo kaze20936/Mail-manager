@@ -176,17 +176,47 @@ class Database:
         return r.data[0] if r.data else None
 
     def upsert_gmail_account(self, email: str, token_json: str):
-        """アカウントを登録・更新するにゃ（既存なら token_json だけ更新）"""
+        """Gmailアカウントを登録・更新するにゃ（既存なら token_json だけ更新）"""
         r = self.client.table('gmail_accounts').select('id').eq('email', email).execute()
         if r.data:
             self.client.table('gmail_accounts').update({
                 'token_json': token_json,
+                'provider':   'gmail',
             }).eq('email', email).execute()
         else:
             self.client.table('gmail_accounts').insert({
                 'email':      email,
                 'token_json': token_json,
+                'provider':   'gmail',
                 'is_active':  False,
+            }).execute()
+
+    def upsert_imap_account(self, email: str, password: str,
+                            imap_host: str, imap_port: int,
+                            smtp_host: str, smtp_port: int,
+                            provider: str = 'imap'):
+        """IMAPアカウントを登録・更新するにゃ"""
+        r = self.client.table('gmail_accounts').select('id').eq('email', email).execute()
+        if r.data:
+            self.client.table('gmail_accounts').update({
+                'password':  password,
+                'imap_host': imap_host,
+                'imap_port': imap_port,
+                'smtp_host': smtp_host,
+                'smtp_port': smtp_port,
+                'provider':  provider,
+            }).eq('email', email).execute()
+        else:
+            self.client.table('gmail_accounts').insert({
+                'email':     email,
+                'token_json': '',
+                'password':  password,
+                'imap_host': imap_host,
+                'imap_port': imap_port,
+                'smtp_host': smtp_host,
+                'smtp_port': smtp_port,
+                'provider':  provider,
+                'is_active': False,
             }).execute()
 
     def set_active_account(self, email: str):
