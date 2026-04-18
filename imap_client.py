@@ -29,6 +29,13 @@ logger = logging.getLogger(__name__)
 
 # ── よく使うプロバイダーのデフォルト設定にゃ
 PROVIDER_PRESETS = {
+    'ocn': {
+        'label':     'OCN メール (NTT)',
+        'imap_host': 'imap.ocn.ne.jp',
+        'imap_port': 993,
+        'smtp_host': 'smtp.ocn.ne.jp',
+        'smtp_port': 465,
+    },
     'outlook': {
         'label':     'Outlook / Hotmail / Microsoft 365',
         'imap_host': 'imap-mail.outlook.com',
