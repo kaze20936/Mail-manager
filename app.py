@@ -15,6 +15,7 @@ load_dotenv(override=True)
 
 from database import Database
 from gmail_client import GmailClient, create_auth_flow, save_token_from_flow
+from imap_client import ImapClient, PROVIDER_PRESETS
 from notion_logger import NotionLogger
 from config import Config
 
