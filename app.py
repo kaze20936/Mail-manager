@@ -1363,6 +1363,20 @@ def main():
                     unsafe_allow_html=True
                 )
 
+    # ── 自動取得ステータス表示にゃ
+    try:
+        _log = db.client.table('fetch_log') \
+            .select('fetched_at,new_count,triggered_by,account_email') \
+            .order('fetched_at', desc=True).limit(1).execute()
+        if _log.data:
+            _l = _log.data[0]
+            _when = _l['fetched_at'][:16].replace('T', ' ')
+            _by   = '🤖 自動' if _l['triggered_by'] == 'auto' else '👤 手動'
+            _new  = _l['new_count']
+            st.caption(f'最終取得: {_when} JST　{_by}　新規 {_new} 件　（{_l["account_email"]}）')
+    except Exception:
+        pass
+
     # ── 使い方ガイド
     with st.expander('📖 使い方ガイド（はじめて使うときに読んでにゃ）'):
         st.markdown('''
