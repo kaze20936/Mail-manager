@@ -130,12 +130,22 @@ def main():
     logger.info(f'=== Mail Manager Fetch 開始 [{mode}] 上限:{limit}件 ===')
     logger.info(f'クエリ: {query}')
 
-    db         = Database()
+    db     = Database()
 
-    # アクティブアカウントのトークンを使うにゃ
+    # アクティブアカウントのプロバイダーに合わせてクライアントを選ぶにゃ
     _active = db.get_active_account()
-    _token  = _active['token_json'] if _active else None
-    gmail      = GmailClient(token_json=_token)
+    if _active and _active.get('provider', 'gmail') != 'gmail':
+        gmail = ImapClient(
+            username  = _active['email'],
+            password  = _active.get('password', ''),
+            imap_host = _active.get('imap_host', ''),
+            imap_port = int(_active.get('imap_port', 993)),
+            smtp_host = _active.get('smtp_host', ''),
+            smtp_port = int(_active.get('smtp_port', 587)),
+        )
+    else:
+        _token = _active['token_json'] if _active else None
+        gmail  = GmailClient(token_json=_token)
     classifier = Classifier()
     generator  = ReplyGenerator()
 
