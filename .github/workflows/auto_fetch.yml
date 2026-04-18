@@ -1,0 +1,43 @@
+name: 📬 メール自動取得にゃ
+
+on:
+  schedule:
+    # 10分おきに実行にゃ（UTC）
+    - cron: '*/10 * * * *'
+  workflow_dispatch:  # 手動実行ボタンも使えるにゃ
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 依存パッケージをインストール
+        run: |
+          pip install --upgrade pip
+          # pyiceberg のビルドエラーを回避するにゃ
+          pip install supabase --no-deps
+          pip install storage3==0.7.7 postgrest==0.17.1 realtime==2.0.2 \
+                      gotrue==2.9.3 httpx supafunc
+          pip install anthropic google-auth google-auth-oauthlib \
+                      google-api-python-client beautifulsoup4 \
+                      python-dotenv pyyaml
+
+      - name: メール自動取得を実行
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+        run: |
+          python fetch.py --limit 50
+        continue-on-error: true  # エラーでもワークフロー自体は成功扱いにゃ
