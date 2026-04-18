@@ -61,6 +61,7 @@ class Database:
             r = (self.client.table('emails')
                  .select('id', count='exact')
                  .eq('status', status)
+                 .eq('hidden', False)
                  .limit(0)
                  .execute())
             result[status] = r.count or 0
