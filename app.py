@@ -1276,30 +1276,42 @@ def render_add_account_section():
     if st.button('✅ このトークンでアカウントを登録', type='primary', key='add_gmail_token_btn'):
         if not token_input.strip():
             st.error('token.json の内容を貼り付けてにゃ')
-            return
+            st.stop()
+
+        import json as _json
         try:
-            import json as _json
-            _json.loads(token_input)  # JSON バリデーションにゃ
+            _json.loads(token_input)
         except Exception:
             st.error('JSON の形式が正しくないにゃ。token.json をそのままコピーしてにゃ')
-            return
+            st.stop()
 
-        with st.spinner('接続確認中にゃ...'):
-            try:
-                tmp = GmailClient(token_json=token_input.strip())
-                new_email = tmp.get_account_email()
-                if not new_email:
-                    st.error('メールアドレスを取得できなかったにゃ。トークンを確認してにゃ')
-                    return
-                db = get_db()
-                db.upsert_gmail_account(new_email, token_input.strip())
-                db.set_active_account(new_email)
-                if 'gmail_client' in st.session_state:
-                    del st.session_state['gmail_client']
-                st.success(f'登録完了にゃ！ {new_email} を追加したにゃ')
-                st.rerun()
-            except Exception as e:
-                st.error(f'エラーにゃ: {e}')
+        st.info('接続確認中にゃ...')
+        error_msg = None
+        new_email  = None
+        try:
+            tmp = GmailClient(token_json=token_input.strip())
+            new_email = tmp.get_account_email()
+        except Exception as e:
+            error_msg = str(e)
+
+        if error_msg:
+            st.error(f'Gmail接続エラーにゃ:\n\n{error_msg}')
+            st.stop()
+
+        if not new_email:
+            st.error('メールアドレスを取得できなかったにゃ。トークンが古いか無効にゃ')
+            st.stop()
+
+        try:
+            db = get_db()
+            db.upsert_gmail_account(new_email, token_input.strip())
+            db.set_active_account(new_email)
+            if 'gmail_client' in st.session_state:
+                del st.session_state['gmail_client']
+            st.success(f'✅ 登録完了にゃ！ {new_email} を追加したにゃ')
+            st.rerun()
+        except Exception as e:
+            st.error(f'DB保存エラーにゃ: {e}')
 
 
 def main():
