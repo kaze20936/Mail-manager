@@ -130,7 +130,11 @@ def main():
     logger.info(f'クエリ: {query}')
 
     db         = Database()
-    gmail      = GmailClient()
+
+    # アクティブアカウントのトークンを使うにゃ
+    _active = db.get_active_account()
+    _token  = _active['token_json'] if _active else None
+    gmail      = GmailClient(token_json=_token)
     classifier = Classifier()
     generator  = ReplyGenerator()
 
