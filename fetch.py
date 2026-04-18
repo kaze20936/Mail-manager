@@ -25,6 +25,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 from config import Config
 from database import Database
 from gmail_client import GmailClient
+from imap_client import ImapClient
 from classifier import Classifier
 from reply_generator import ReplyGenerator
 
