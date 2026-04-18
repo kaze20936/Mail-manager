@@ -214,21 +214,28 @@ def get_db() -> Database:
     return st.session_state['db']
 
 
-def get_gmail() -> GmailClient | None:
+def get_gmail() -> GmailClient | ImapClient | None:
+    """アクティブアカウントのメールクライアントを返すにゃ（Gmail/IMAP 両対応）"""
     if 'gmail_client' not in st.session_state:
         try:
-            # アクティブアカウントのトークンを使うにゃ
-            token_json = None
-            try:
-                db = get_db()
-                active = db.get_active_account()
-                if active:
-                    token_json = active['token_json']
-            except Exception:
-                pass
-            st.session_state['gmail_client'] = GmailClient(token_json=token_json)
+            db = get_db()
+            active = db.get_active_account()
+            if active and active.get('provider', 'gmail') != 'gmail':
+                # IMAP プロバイダーにゃ
+                st.session_state['gmail_client'] = ImapClient(
+                    username  = active['email'],
+                    password  = active.get('password', ''),
+                    imap_host = active.get('imap_host', ''),
+                    imap_port = int(active.get('imap_port', 993)),
+                    smtp_host = active.get('smtp_host', ''),
+                    smtp_port = int(active.get('smtp_port', 587)),
+                )
+            else:
+                # Gmail OAuth にゃ
+                token_json = active['token_json'] if active else None
+                st.session_state['gmail_client'] = GmailClient(token_json=token_json)
         except Exception as e:
-            st.error(f'Gmail 認証エラー: {e}')
+            st.error(f'メール認証エラー: {e}')
             st.session_state['gmail_client'] = None
     return st.session_state['gmail_client']
 
