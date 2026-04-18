@@ -1095,48 +1095,138 @@ def render_settings():
 # メイン
 # ─────────────────────────────────────────────
 
-def _auto_register_current_account():
-    """起動時に現在のGmailアカウントをSupabaseに自動登録するにゃ"""
-    if st.session_state.get('_account_registered'):
-        return
-    try:
-        db = get_db()
-        gmail = get_gmail()
-        if not gmail:
-            return
-        accounts = db.get_gmail_accounts()
-        email = gmail.get_account_email()
-        if not email:
-            return
-        # まだ登録されていないアカウントなら登録するにゃ
-        import json as _json
-        token_path = Config.GMAIL_TOKEN_PATH
-        token_json = ''
-        if os.path.exists(token_path):
-            with open(token_path, 'r') as f:
-                token_json = f.read()
-        if not token_json:
-            # 環境変数から取得にゃ
-            token_json = os.getenv('GMAIL_TOKEN_JSON', '')
-            if not token_json:
-                try:
-                    token_json = str(st.secrets.get('GMAIL_TOKEN_JSON', ''))
-                except Exception:
-                    pass
-        if token_json:
-            db.upsert_gmail_account(email, token_json)
-            # アクティブアカウントが未設定なら現在のを設定にゃ
-            active = db.get_active_account()
-            if not active:
-                db.set_active_account(email)
-        st.session_state['_account_registered'] = True
-    except Exception:
-        pass
+def _get_default_token_json() -> str:
+    """token.json または環境変数からトークンを取得するにゃ"""
+    token_path = Config.GMAIL_TOKEN_PATH
+    if os.path.exists(token_path):
+        with open(token_path, 'r') as f:
+            return f.read()
+    token = os.getenv('GMAIL_TOKEN_JSON', '')
+    if not token:
+        try:
+            token = str(st.secrets.get('GMAIL_TOKEN_JSON', ''))
+        except Exception:
+            pass
+    return token
+
+
+def render_account_select_screen():
+    """アカウント選択画面にゃ（アクティブアカウント未設定時に表示）"""
+    st.title('✉️ Mail Manager')
+    st.markdown('---')
+    st.markdown('## 使用するGmailアカウントを選択してにゃ')
+
+    db = get_db()
+    accounts = db.get_gmail_accounts()
+
+    # 登録済みアカウントがあれば一覧表示にゃ
+    if accounts:
+        st.markdown('**登録済みのアカウント：**')
+        for acc in accounts:
+            col_info, col_btn = st.columns([3, 1])
+            with col_info:
+                st.markdown(f'📧 **{acc["email"]}**')
+            with col_btn:
+                if st.button('このアカウントを使う', key=f'sel_{acc["email"]}', type='primary'):
+                    db.set_active_account(acc['email'])
+                    if 'gmail_client' in st.session_state:
+                        del st.session_state['gmail_client']
+                    st.rerun()
+        st.markdown('---')
+
+    # デフォルトtokenのアカウントを候補として表示にゃ
+    token_json = _get_default_token_json()
+    if token_json:
+        try:
+            tmp = GmailClient(token_json=token_json)
+            default_email = tmp.get_account_email()
+            if default_email:
+                already = any(a['email'] == default_email for a in accounts)
+                if not already:
+                    st.markdown(f'**接続済みのGmailアカウントにゃ：**')
+                    st.markdown(
+                        f'<div style="background:#f0fdf4;border:2px solid #bbf7d0;'
+                        f'border-radius:12px;padding:1rem 1.4rem;margin:.8rem 0;">'
+                        f'<div style="font-size:1.1rem;font-weight:700;">📧 {default_email}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button(f'📧 {default_email} で始める', type='primary', use_container_width=True):
+                        db.upsert_gmail_account(default_email, token_json)
+                        db.set_active_account(default_email)
+                        if 'gmail_client' in st.session_state:
+                            del st.session_state['gmail_client']
+                        st.rerun()
+        except Exception:
+            pass
+
+    # 別アカウントを追加するセクションにゃ
+    with st.expander('➕ 別のGoogleアカウントを追加する'):
+        render_add_account_section()
+
+
+def render_add_account_section():
+    """アカウント追加フォームにゃ（render_account_tabと共有）"""
+    app_url = _get_app_url()
+    if not app_url:
+        app_url = st.text_input(
+            'このアプリのURL',
+            placeholder='https://xxx.streamlit.app',
+            key='add_account_url_input'
+        )
+        if app_url:
+            app_url = app_url.strip().rstrip('/')
+
+    if app_url:
+        st.code(app_url, language=None)
+        if st.button('➕ Googleアカウントを追加する', type='primary', key='add_account_btn'):
+            try:
+                flow, auth_url, _ = create_auth_flow(app_url)
+                st.session_state['oauth_flow'] = flow
+                st.session_state['pending_auth_url'] = auth_url
+            except Exception as e:
+                st.error(f'エラー: {e}')
+
+        if 'pending_auth_url' in st.session_state:
+            from urllib.parse import urlparse, parse_qs
+            _parsed = urlparse(st.session_state['pending_auth_url'])
+            _params = parse_qs(_parsed.query)
+            _actual_redirect = _params.get('redirect_uri', ['(不明)'])[0]
+            st.info(f'Google Cloud Consoleに登録するURI：\n\n`{_actual_redirect}`')
+            st.link_button('🔑 Googleでログインする', st.session_state['pending_auth_url'], use_container_width=True)
 
 
 def main():
-    # ── 起動時に現在のアカウントを自動登録にゃ
-    _auto_register_current_account()
+    # ── OAuthコールバック処理（アカウント選択画面でも動作するにゃ）
+    oauth_code = st.query_params.get('code', '')
+    if oauth_code and 'oauth_flow' in st.session_state:
+        with st.spinner('認証中にゃ...'):
+            try:
+                flow = st.session_state.pop('oauth_flow')
+                save_token_from_flow(flow, oauth_code)
+                tmp = GmailClient(token_json=flow.credentials.to_json())
+                new_email = tmp.get_account_email()
+                if new_email:
+                    db = get_db()
+                    db.upsert_gmail_account(new_email, flow.credentials.to_json())
+                    db.set_active_account(new_email)
+                if 'gmail_client' in st.session_state:
+                    del st.session_state['gmail_client']
+                st.query_params.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f'認証エラー: {e}')
+                st.query_params.clear()
+
+    # ── アクティブアカウント未設定ならアカウント選択画面を表示にゃ
+    try:
+        db = get_db()
+        active = db.get_active_account()
+        if not active:
+            render_account_select_screen()
+            return
+    except Exception:
+        pass
 
     # ── タイトル＋接続アカウント表示
     title_col, account_col = st.columns([3, 2])
