@@ -1228,7 +1228,7 @@ def render_account_select_screen():
             if default_email:
                 already = any(a['email'] == default_email for a in accounts)
                 if not already:
-                    st.markdown(f'**接続済みのGmailアカウントにゃ：**')
+                    st.markdown(f'**接続済みのアカウントにゃ：**')
                     st.markdown(
                         f'<div style="background:#f0fdf4;border:2px solid #bbf7d0;'
                         f'border-radius:12px;padding:1rem 1.4rem;margin:.8rem 0;">'
