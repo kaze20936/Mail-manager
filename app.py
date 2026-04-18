@@ -1239,8 +1239,12 @@ def render_account_select_screen():
             pass
 
     # 別アカウントを追加するセクションにゃ
-    with st.expander('➕ 別のGoogleアカウントを追加する'):
-        render_add_account_section()
+    with st.expander('➕ 別のアカウントを追加する'):
+        add_tab_g, add_tab_i = st.tabs(['🔴 Gmail (OAuth)', '📧 その他のメール (IMAP)'])
+        with add_tab_g:
+            render_add_account_section()
+        with add_tab_i:
+            render_add_imap_account_section()
 
 
 def render_add_account_section():
