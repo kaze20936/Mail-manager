@@ -190,9 +190,10 @@ class Database:
             }).execute()
 
     def set_active_account(self, email: str):
-        """指定アカウントをアクティブにして他を非アクティブにするにゃ"""
+        """指定アカウントをアクティブにして他を非アクティブにするにゃ（空文字で全解除）"""
         self.client.table('gmail_accounts').update({'is_active': False}).neq('email', '').execute()
-        self.client.table('gmail_accounts').update({'is_active': True}).eq('email', email).execute()
+        if email:
+            self.client.table('gmail_accounts').update({'is_active': True}).eq('email', email).execute()
 
     def delete_gmail_account(self, email: str):
         """アカウントを削除するにゃ"""
