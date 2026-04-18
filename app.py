@@ -1413,14 +1413,38 @@ def main():
     st.divider()
 
     # ── メール取得パネル
-    with st.expander('📥 メールを取得する', expanded=(pending_n == 0 and saved_n == 0)):
+    # アクティブアカウント名を取得してUIに表示にゃ
+    try:
+        _active_acc = get_db().get_active_account()
+        _active_label = _active_acc['email'] if _active_acc else '未設定'
+        _active_provider = _active_acc.get('provider', 'gmail') if _active_acc else 'gmail'
+    except Exception:
+        _active_label = '不明'
+        _active_provider = 'gmail'
+
+    with st.expander(f'📥 メールを取得する（{_active_label}）', expanded=(pending_n == 0 and saved_n == 0)):
         fetch_tab1, fetch_tab2, fetch_tab3 = st.tabs(['🆕 新着（未読）', '📅 過去のメール', '🔍 カスタム検索'])
 
         cwd = os.path.dirname(os.path.abspath(__file__))
 
-        def run_fetch(args_extra: list, spinner_msg: str):
+        # Streamlit Secrets を subprocess の環境変数として渡すにゃ
+        def _build_env():
             env = os.environ.copy()
             env['PYTHONIOENCODING'] = 'utf-8'
+            # Streamlit Cloud では st.secrets が OS 環境変数にないため明示的にセットにゃ
+            for key in ('SUPABASE_URL', 'SUPABASE_KEY', 'ANTHROPIC_API_KEY',
+                        'GMAIL_CREDENTIALS_JSON', 'GMAIL_TOKEN_JSON'):
+                if key not in env or not env.get(key):
+                    try:
+                        val = str(st.secrets.get(key, ''))
+                        if val:
+                            env[key] = val
+                    except Exception:
+                        pass
+            return env
+
+        def run_fetch(args_extra: list, spinner_msg: str):
+            env = _build_env()
             with st.spinner(spinner_msg):
                 result = subprocess.run(
                     [sys.executable, 'fetch.py'] + args_extra,
@@ -1431,16 +1455,16 @@ def main():
                 st.success('取得完了にゃ！')
                 st.rerun()
             else:
-                st.error(f'エラーにゃ:\n{result.stderr[:400]}')
+                st.error(f'エラーにゃ:\n{result.stderr[:600]}')
 
         with fetch_tab1:
-            st.caption('Gmailの未読メール（受信トレイ）を取得して振り分けるにゃ')
+            st.caption(f'受信トレイの未読メールを取得して振り分けるにゃ（アカウント: {_active_label}）')
             c1, c2 = st.columns([1, 3])
             with c1:
                 limit_new = st.number_input('最大件数', min_value=1, max_value=500,
                                             value=50, key='limit_new')
             if st.button('🔄 新着メールを取得', type='primary', key='fetch_new'):
-                run_fetch(['--limit', str(limit_new)], 'Gmail から取得中...')
+                run_fetch(['--limit', str(limit_new)], f'{_active_label} からメールを取得中...')
 
         with fetch_tab2:
             st.caption('過去に受信したメールをさかのぼって取得するにゃ')
