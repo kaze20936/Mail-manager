@@ -1273,7 +1273,7 @@ def render_add_account_section():
         key='token_json_paste'
     )
 
-    if st.button('✅ このトークンでGmailを登録', type='primary', key='add_gmail_token_btn'):
+    if st.button('✅ このトークンでアカウントを登録', type='primary', key='add_gmail_token_btn'):
         if not token_input.strip():
             st.error('token.json の内容を貼り付けてにゃ')
             return
