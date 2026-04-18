@@ -843,9 +843,16 @@ def render_add_imap_account_section():
             )
 
     # ── アプリパスワードの案内にゃ
-    if selected_preset in ('outlook', 'yahoo', 'icloud'):
+    if selected_preset in ('ocn', 'outlook', 'yahoo', 'icloud'):
         with st.expander('❓ パスワードが通らない場合にゃ'):
             guides = {
+                'ocn': (
+                    '**OCN メールの IMAP 設定を有効にするにゃ：**\n\n'
+                    '1. `mypage.ocn.ne.jp` にログインにゃ\n'
+                    '2. 「メール設定」→「IMAP設定」→「IMAPを利用する」をONにするにゃ\n'
+                    '3. パスワードはOCNのログインパスワードをそのまま使うにゃ\n\n'
+                    '⚠️ IMAP が無効だと接続できないにゃ。マイページで有効化してにゃ'
+                ),
                 'outlook': (
                     '**Microsoftアカウントのアプリパスワード取得にゃ：**\n\n'
                     '1. `account.microsoft.com` でサインインにゃ\n'
