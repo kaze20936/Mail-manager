@@ -724,29 +724,43 @@ def _get_app_url() -> str:
     return url.rstrip('/') if url else ''
 
 
+def _provider_label(acc: dict) -> str:
+    """プロバイダー種別のアイコン付きラベルにゃ"""
+    p = acc.get('provider', 'gmail')
+    if p == 'gmail':
+        return '🔴 Gmail'
+    preset = PROVIDER_PRESETS.get(p)
+    if preset:
+        return f'📧 {preset["label"]}'
+    return f'📧 {p}'
+
+
 def render_account_tab():
     """アカウント切り替えタブにゃ"""
     db = get_db()
 
     # ── アカウント一覧
-    st.markdown('### 📧 Gmailアカウント')
+    st.markdown('### 📧 メールアカウント')
     accounts = db.get_gmail_accounts()
 
     if not accounts:
         st.info('まだアカウントが登録されていないにゃ。下から追加してにゃ！')
     else:
         for acc in accounts:
-            col_info, col_btn = st.columns([4, 1])
+            col_info, col_sw, col_del = st.columns([5, 1, 1])
             is_active = acc.get('is_active', False)
             with col_info:
-                badge = '<span style="background:#dcfce7;color:#15803d;font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:20px;margin-left:.5rem;">使用中</span>' if is_active else ''
+                badge = ('<span style="background:#dcfce7;color:#15803d;font-size:.72rem;'
+                         'font-weight:700;padding:.15rem .5rem;border-radius:20px;margin-left:.5rem;">'
+                         '使用中</span>') if is_active else ''
                 st.markdown(
                     f'<div style="padding:.6rem 0;border-bottom:1px solid #f1f5f9;">'
-                    f'{"🟢" if is_active else "⚪"} <b>{acc["email"]}</b>{badge}'
-                    f'</div>',
+                    f'{"🟢" if is_active else "⚪"} <b>{acc["email"]}</b> '
+                    f'<span style="font-size:.75rem;color:#94a3b8;">{_provider_label(acc)}</span>'
+                    f'{badge}</div>',
                     unsafe_allow_html=True
                 )
-            with col_btn:
+            with col_sw:
                 if not is_active:
                     if st.button('切り替え', key=f'sw_{acc["email"]}', type='primary'):
                         db.set_active_account(acc['email'])
@@ -754,18 +768,143 @@ def render_account_tab():
                             del st.session_state['gmail_client']
                         st.success(f'{acc["email"]} に切り替えたにゃ！')
                         st.rerun()
-                else:
-                    if st.button('削除', key=f'del_{acc["email"]}'):
-                        db.delete_gmail_account(acc['email'])
-                        db.set_active_account('')  # アクティブ解除
-                        if 'gmail_client' in st.session_state:
-                            del st.session_state['gmail_client']
-                        st.rerun()
+            with col_del:
+                if st.button('削除', key=f'del_{acc["email"]}'):
+                    db.delete_gmail_account(acc['email'])
+                    if is_active:
+                        db.set_active_account('')
+                    if 'gmail_client' in st.session_state:
+                        del st.session_state['gmail_client']
+                    st.rerun()
 
     # ── アカウント追加
     st.markdown('---')
     st.markdown('### ➕ アカウントを追加する')
-    render_add_account_section()
+
+    add_tab_gmail, add_tab_imap = st.tabs(['🔴 Gmail (OAuth)', '📧 その他のメール (IMAP)'])
+
+    with add_tab_gmail:
+        st.caption('GmailはOAuth認証でセキュアに接続するにゃ。')
+        render_add_account_section()
+
+    with add_tab_imap:
+        render_add_imap_account_section()
+
+
+def render_add_imap_account_section():
+    """IMAP アカウント追加フォームにゃ"""
+    st.caption('Outlook・Yahoo Mail・iCloudなどのメールを追加できるにゃ。')
+
+    # ── プロバイダー選択にゃ
+    preset_options = {k: v['label'] for k, v in PROVIDER_PRESETS.items()}
+    selected_preset = st.selectbox(
+        'プロバイダーを選ぶにゃ',
+        options=list(preset_options.keys()),
+        format_func=lambda k: preset_options[k],
+        key='imap_provider_select'
+    )
+    preset = PROVIDER_PRESETS[selected_preset]
+
+    st.markdown('---')
+
+    # ── アカウント情報にゃ
+    imap_email = st.text_input(
+        'メールアドレス',
+        placeholder='your@outlook.com',
+        key='imap_email'
+    )
+    imap_password = st.text_input(
+        'パスワード（またはアプリパスワード）',
+        type='password',
+        placeholder='••••••••',
+        key='imap_password',
+        help='セキュリティのためアプリパスワードの使用を推奨にゃ'
+    )
+
+    # ── サーバー設定にゃ（カスタムの場合は手動入力）
+    if selected_preset == 'custom':
+        c1, c2 = st.columns(2)
+        with c1:
+            imap_host = st.text_input('IMAPサーバー', placeholder='imap.example.com', key='imap_host')
+            imap_port = st.number_input('IMAPポート', value=993, min_value=1, max_value=65535, key='imap_port')
+        with c2:
+            smtp_host = st.text_input('SMTPサーバー', placeholder='smtp.example.com', key='smtp_host')
+            smtp_port = st.number_input('SMTPポート', value=587, min_value=1, max_value=65535, key='smtp_port')
+    else:
+        imap_host = preset['imap_host']
+        imap_port = preset['imap_port']
+        smtp_host = preset['smtp_host']
+        smtp_port = preset['smtp_port']
+
+        with st.expander('🔧 サーバー設定（自動設定済み・変更不要にゃ）'):
+            st.code(
+                f'IMAP: {imap_host}:{imap_port}\n'
+                f'SMTP: {smtp_host}:{smtp_port}'
+            )
+
+    # ── アプリパスワードの案内にゃ
+    if selected_preset in ('outlook', 'yahoo', 'icloud'):
+        with st.expander('❓ パスワードが通らない場合にゃ'):
+            guides = {
+                'outlook': (
+                    '**Microsoftアカウントのアプリパスワード取得にゃ：**\n\n'
+                    '1. `account.microsoft.com` でサインインにゃ\n'
+                    '2. セキュリティ → 高度なセキュリティオプション\n'
+                    '3. アプリパスワードを作成にゃ\n\n'
+                    '⚠️ 2段階認証が有効な場合はアプリパスワードが必要にゃ'
+                ),
+                'yahoo': (
+                    '**Yahoo! Mailのアプリパスワード取得にゃ：**\n\n'
+                    '1. `security.yahoo.com` でサインインにゃ\n'
+                    '2. 「アプリパスワードの生成」→「メール」を選択にゃ\n'
+                    '3. 生成されたパスワードを使うにゃ\n\n'
+                    '⚠️ Yahoo Mailは「アプリパスワード」必須にゃ（通常パスワードは不可）'
+                ),
+                'icloud': (
+                    '**iCloudのアプリパスワード取得にゃ：**\n\n'
+                    '1. `appleid.apple.com` でサインインにゃ\n'
+                    '2. サインインとセキュリティ → アプリ用パスワード\n'
+                    '3. 「+」でパスワードを生成にゃ\n\n'
+                    '⚠️ iCloudは2ファクタ認証必須・アプリパスワードが必要にゃ'
+                ),
+            }
+            st.markdown(guides[selected_preset])
+
+    if st.button('✅ 接続テスト＆登録', type='primary', key='add_imap_btn'):
+        if not imap_email.strip() or not imap_password.strip():
+            st.error('メールアドレスとパスワードを入力してにゃ')
+            return
+        if not imap_host:
+            st.error('IMAPサーバーを入力してにゃ')
+            return
+
+        with st.spinner('接続テスト中にゃ...'):
+            try:
+                client = ImapClient(
+                    username  = imap_email.strip(),
+                    password  = imap_password.strip(),
+                    imap_host = imap_host,
+                    imap_port = int(imap_port),
+                    smtp_host = smtp_host,
+                    smtp_port = int(smtp_port),
+                )
+                db = get_db()
+                db.upsert_imap_account(
+                    email     = imap_email.strip(),
+                    password  = imap_password.strip(),
+                    imap_host = imap_host,
+                    imap_port = int(imap_port),
+                    smtp_host = smtp_host,
+                    smtp_port = int(smtp_port),
+                    provider  = selected_preset,
+                )
+                db.set_active_account(imap_email.strip())
+                if 'gmail_client' in st.session_state:
+                    del st.session_state['gmail_client']
+                st.success(f'登録完了にゃ！ {imap_email} で接続したにゃ')
+                st.rerun()
+            except Exception as e:
+                st.error(f'接続失敗にゃ: {e}')
 
 
 
