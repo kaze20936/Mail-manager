@@ -1095,7 +1095,49 @@ def render_settings():
 # メイン
 # ─────────────────────────────────────────────
 
+def _auto_register_current_account():
+    """起動時に現在のGmailアカウントをSupabaseに自動登録するにゃ"""
+    if st.session_state.get('_account_registered'):
+        return
+    try:
+        db = get_db()
+        gmail = get_gmail()
+        if not gmail:
+            return
+        accounts = db.get_gmail_accounts()
+        email = gmail.get_account_email()
+        if not email:
+            return
+        # まだ登録されていないアカウントなら登録するにゃ
+        import json as _json
+        token_path = Config.GMAIL_TOKEN_PATH
+        token_json = ''
+        if os.path.exists(token_path):
+            with open(token_path, 'r') as f:
+                token_json = f.read()
+        if not token_json:
+            # 環境変数から取得にゃ
+            token_json = os.getenv('GMAIL_TOKEN_JSON', '')
+            if not token_json:
+                try:
+                    token_json = str(st.secrets.get('GMAIL_TOKEN_JSON', ''))
+                except Exception:
+                    pass
+        if token_json:
+            db.upsert_gmail_account(email, token_json)
+            # アクティブアカウントが未設定なら現在のを設定にゃ
+            active = db.get_active_account()
+            if not active:
+                db.set_active_account(email)
+        st.session_state['_account_registered'] = True
+    except Exception:
+        pass
+
+
 def main():
+    # ── 起動時に現在のアカウントを自動登録にゃ
+    _auto_register_current_account()
+
     # ── タイトル＋接続アカウント表示
     title_col, account_col = st.columns([3, 2])
     with title_col:
