@@ -1467,7 +1467,7 @@ def main():
                 run_fetch(['--limit', str(limit_new)], f'{_active_label} からメールを取得中...')
 
         with fetch_tab2:
-            st.caption('過去に受信したメールをさかのぼって取得するにゃ')
+            st.caption(f'過去に受信したメールをさかのぼって取得するにゃ（アカウント: {_active_label}）')
             c1, c2, c3 = st.columns([1, 1, 2])
             with c1:
                 days = st.number_input('過去N日分', min_value=1, max_value=365,
