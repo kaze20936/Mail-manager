@@ -1487,7 +1487,7 @@ def main():
                               f'過去 {days} 日分を取得中...')
 
         with fetch_tab3:
-            st.caption('Gmailの検索クエリを直接指定するにゃ（上級者向け）')
+            st.caption(f'検索クエリを直接指定するにゃ（上級者向け）（アカウント: {_active_label}）')
             st.markdown('例: `from:boss@example.com` / `subject:請求書` / `after:2024/01/01`')
             custom_query = st.text_input('Gmailクエリ', value='in:inbox',
                                          key='custom_query',
