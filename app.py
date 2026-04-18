@@ -1373,12 +1373,12 @@ def main():
 - 「⏭ スキップ」で今は対応しないメールを後回しにできるにゃ（設定タブ→送信者管理→返信しないに移動するとより効果的にゃ）
         ''')
 
-    db     = get_db()
-    counts = db.get_counts()
+    db = get_db()
 
-    pending_n = counts.get('pending', 0)
-    saved_n   = counts.get('saved',   0)
-    sent_n    = counts.get('sent',    0)
+    # 表示と同じクエリ（hidden=False）でカウントするにゃ → ズレが起きないにゃ
+    pending_n = len(db.get_emails_by_status('pending'))
+    saved_n   = len(db.get_emails_by_status('saved'))
+    sent_n    = len(db.get_emails_by_status('sent'))
 
     # ── ヘッダー統計カード
     m1, m2, m3 = st.columns(3)
