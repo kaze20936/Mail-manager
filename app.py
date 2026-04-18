@@ -720,30 +720,6 @@ def render_account_tab():
     """アカウント切り替えタブにゃ"""
     db = get_db()
 
-    # ── OAuthコールバック処理
-    oauth_code = st.query_params.get('code', '')
-    if oauth_code and 'oauth_flow' in st.session_state:
-        with st.spinner('認証中にゃ...'):
-            try:
-                flow = st.session_state.pop('oauth_flow')
-                save_token_from_flow(flow, oauth_code)
-                # メールアドレスを取得して登録にゃ
-                import json as _json
-                creds_data = _json.loads(flow.credentials.to_json())
-                tmp_client = GmailClient(token_json=flow.credentials.to_json())
-                new_email = tmp_client.get_account_email()
-                if new_email:
-                    db.upsert_gmail_account(new_email, flow.credentials.to_json())
-                    db.set_active_account(new_email)
-                if 'gmail_client' in st.session_state:
-                    del st.session_state['gmail_client']
-                st.query_params.clear()
-                st.success(f'✅ {new_email} を追加・切り替えたにゃ！')
-                st.rerun()
-            except Exception as e:
-                st.error(f'認証エラー: {e}')
-                st.query_params.clear()
-
     # ── アカウント一覧
     st.markdown('### 📧 Gmailアカウント')
     accounts = db.get_gmail_accounts()
@@ -773,6 +749,7 @@ def render_account_tab():
                 else:
                     if st.button('削除', key=f'del_{acc["email"]}'):
                         db.delete_gmail_account(acc['email'])
+                        db.set_active_account('')  # アクティブ解除
                         if 'gmail_client' in st.session_state:
                             del st.session_state['gmail_client']
                         st.rerun()
@@ -780,16 +757,11 @@ def render_account_tab():
     # ── アカウント追加
     st.markdown('---')
     st.markdown('### ➕ アカウントを追加する')
+    render_add_account_section()
 
     app_url = _get_app_url()
     if not app_url:
-        app_url = st.text_input(
-            'このアプリのURL（アドレスバーからコピーにゃ）',
-            placeholder='https://xxx.streamlit.app',
-            help='?以降は不要にゃ'
-        )
-        if app_url:
-            app_url = app_url.strip().rstrip('/')
+        app_url = ''
 
     if app_url:
         st.markdown(
