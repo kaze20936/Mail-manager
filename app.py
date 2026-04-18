@@ -781,14 +781,14 @@ def render_account_tab():
     st.markdown('---')
     st.markdown('### ➕ アカウントを追加する')
 
-    add_tab_gmail, add_tab_imap = st.tabs(['🔴 Gmail', '📧 その他のメール (OCN・Outlook・Yahoo など)'])
+    add_tab_imap, add_tab_gmail = st.tabs(['📧 OCN・Outlook・Yahoo などのメール', '🔴 Gmail'])
+
+    with add_tab_imap:
+        render_add_imap_account_section()
 
     with add_tab_gmail:
         st.caption('GmailはOAuth認証でセキュアに接続するにゃ。')
         render_add_account_section()
-
-    with add_tab_imap:
-        render_add_imap_account_section()
 
 
 def render_add_imap_account_section():
