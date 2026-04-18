@@ -1247,11 +1247,11 @@ def render_account_select_screen():
 
     # 別アカウントを追加するセクションにゃ
     with st.expander('➕ 別のアカウントを追加する'):
-        add_tab_g, add_tab_i = st.tabs(['🔴 Gmail', '📧 その他のメール (OCN・Outlook・Yahoo など)'])
-        with add_tab_g:
-            render_add_account_section()
+        add_tab_i, add_tab_g = st.tabs(['📧 OCN・Outlook・Yahoo などのメール', '🔴 Gmail'])
         with add_tab_i:
             render_add_imap_account_section()
+        with add_tab_g:
+            render_add_account_section()
 
 
 def render_add_account_section():
