@@ -154,6 +154,20 @@ def main():
 
     new_count, skip_count, err_count = process_emails(emails, db, classifier, generator)
 
+    # 取得ログを記録するにゃ
+    triggered_by = 'auto' if os.getenv('GITHUB_ACTIONS') else 'manual'
+    account_email = _active['email'] if _active else ''
+    try:
+        db.client.table('fetch_log').insert({
+            'new_count':     new_count,
+            'skip_count':    skip_count,
+            'err_count':     err_count,
+            'account_email': account_email,
+            'triggered_by':  triggered_by,
+        }).execute()
+    except Exception as e:
+        logger.warning(f'ログ記録失敗にゃ: {e}')
+
     summary = (
         f'\n取得完了！ [{mode}]\n'
         f'  新規: {new_count} 件\n'
