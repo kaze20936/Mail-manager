@@ -1255,34 +1255,51 @@ def render_account_select_screen():
 
 
 def render_add_account_section():
-    """アカウント追加フォームにゃ（render_account_tabと共有）"""
-    app_url = _get_app_url()
-    if not app_url:
-        app_url = st.text_input(
-            'このアプリのURL',
-            placeholder='https://xxx.streamlit.app',
-            key='add_account_url_input'
-        )
-        if app_url:
-            app_url = app_url.strip().rstrip('/')
+    """アカウント追加フォームにゃ（token.json 貼り付け方式）"""
+    st.info(
+        '**手順にゃ：**\n\n'
+        '1. ローカルPC で `auth_token.py` を実行してにゃ（ブラウザでGoogleログイン）\n'
+        '2. 生成された `token.json` の中身をコピーして下に貼り付けるにゃ\n'
+        '3. 「登録」ボタンを押せば完了にゃ'
+    )
 
-    if app_url:
-        st.code(app_url, language=None)
-        if st.button('➕ Googleアカウントを追加する', type='primary', key='add_account_btn'):
+    st.caption('auth_token.py の実行コマンドにゃ：')
+    st.code('python auth_token.py', language='bash')
+
+    token_input = st.text_area(
+        'token.json の内容を貼り付けてにゃ',
+        height=160,
+        placeholder='{\n  "token": "ya29...",\n  "refresh_token": "1//...",\n  ...\n}',
+        key='token_json_paste'
+    )
+
+    if st.button('✅ このトークンでGmailを登録', type='primary', key='add_gmail_token_btn'):
+        if not token_input.strip():
+            st.error('token.json の内容を貼り付けてにゃ')
+            return
+        try:
+            import json as _json
+            _json.loads(token_input)  # JSON バリデーションにゃ
+        except Exception:
+            st.error('JSON の形式が正しくないにゃ。token.json をそのままコピーしてにゃ')
+            return
+
+        with st.spinner('接続確認中にゃ...'):
             try:
-                flow, auth_url, _ = create_auth_flow(app_url)
-                st.session_state['oauth_flow'] = flow
-                st.session_state['pending_auth_url'] = auth_url
+                tmp = GmailClient(token_json=token_input.strip())
+                new_email = tmp.get_account_email()
+                if not new_email:
+                    st.error('メールアドレスを取得できなかったにゃ。トークンを確認してにゃ')
+                    return
+                db = get_db()
+                db.upsert_gmail_account(new_email, token_input.strip())
+                db.set_active_account(new_email)
+                if 'gmail_client' in st.session_state:
+                    del st.session_state['gmail_client']
+                st.success(f'登録完了にゃ！ {new_email} を追加したにゃ')
+                st.rerun()
             except Exception as e:
-                st.error(f'エラー: {e}')
-
-        if 'pending_auth_url' in st.session_state:
-            from urllib.parse import urlparse, parse_qs
-            _parsed = urlparse(st.session_state['pending_auth_url'])
-            _params = parse_qs(_parsed.query)
-            _actual_redirect = _params.get('redirect_uri', ['(不明)'])[0]
-            st.info(f'Google Cloud Consoleに登録するURI：\n\n`{_actual_redirect}`')
-            st.link_button('🔑 Googleでログインする', st.session_state['pending_auth_url'], use_container_width=True)
+                st.error(f'エラーにゃ: {e}')
 
 
 def main():
