@@ -759,47 +759,6 @@ def render_account_tab():
     st.markdown('### ➕ アカウントを追加する')
     render_add_account_section()
 
-    app_url = _get_app_url()
-    if not app_url:
-        app_url = ''
-
-    if app_url:
-        st.markdown(
-            f'**Google Cloud Consoleに登録するリダイレクトURIにゃ（コピーしてそのまま貼るにゃ）：**'
-        )
-        st.code(app_url, language=None)
-        if st.button('➕ Googleアカウントを追加する', type='primary', use_container_width=True):
-            try:
-                flow, auth_url, _ = create_auth_flow(app_url)
-                st.session_state['oauth_flow'] = flow
-                st.session_state['pending_auth_url'] = auth_url
-            except Exception as e:
-                st.error(f'エラー: {e}')
-
-        if 'pending_auth_url' in st.session_state:
-            # Googleに送るredirect_uriを抽出して表示にゃ
-            from urllib.parse import urlparse, parse_qs
-            _parsed = urlparse(st.session_state['pending_auth_url'])
-            _params = parse_qs(_parsed.query)
-            _actual_redirect = _params.get('redirect_uri', ['(不明)'])[0]
-            st.info(f'**Google Cloud Consoleに登録するURI（コピーしてそのまま貼るにゃ）：**\n\n`{_actual_redirect}`')
-            st.link_button(
-                '🔑 Googleでログインする',
-                st.session_state['pending_auth_url'],
-                use_container_width=True,
-            )
-            st.caption('↑ クリック → Googleでアカウント選択 → 自動で登録されるにゃ 🎉')
-
-        with st.expander('⚠️ 初回のみ：Google Cloud Consoleへの登録が必要にゃ'):
-            st.markdown(f'''
-1. [Google Cloud Console](https://console.cloud.google.com/) → **「APIとサービス」→「認証情報」**
-2. credentials.json の OAuth クライアントIDをクリックにゃ
-3. **「承認済みのリダイレクト URI」** に追加にゃ：
-   ```
-   {app_url}
-   ```
-4. 保存 → 完了にゃ ✅
-            ''')
 
 
 def render_settings():
